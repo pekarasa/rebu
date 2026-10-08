@@ -1,11 +1,8 @@
 {
   "name": "rebu-dev",
-  "build": {
-    "context": "..",
-    "dockerfile": "Dockerfile"
-  },
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devenv",
   "workspaceFolder": "/workspace",
-  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
   "remoteUser": "node",
 
   "forwardPorts": [8100, 4200, 35729],
@@ -40,11 +37,12 @@
     }
   },
 
-  "postCreateCommand": "node --version && npm --version && java -version && sdkmanager --version && ionic --version",
-
   "containerEnv": {
     "ANDROID_SDK_ROOT": "/opt/android-sdk",
     "ANDROID_HOME": "/opt/android-sdk",
     "JAVA_HOME": "/usr/lib/jvm/java-17-openjdk-amd64"
-  }
+  },
+
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  "postCreateCommand": "node --version && npm --version && java -version && sdkmanager --version && ionic --version"
 }

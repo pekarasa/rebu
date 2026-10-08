@@ -1,0 +1,18 @@
+services:
+  devenv:
+    build:
+      context: ..
+      dockerfile: .devcontainer/devenv.dockerfile
+
+    user: "node"
+    command: sleep infinity
+
+    volumes:
+      # Workspace bind-mount (must match devcontainer.json workspaceFolder)
+      - ..:/workspace:cached
+      - rebu_user_data:/mnt/user_data
+
+    working_dir: /workspace
+
+volumes:
+  rebu_user_data:
