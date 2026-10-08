@@ -1,12 +1,15 @@
 # Dev-Container-Image für Rebu (Ionic + Angular + Capacitor)
-# Enthält Node 20, Android SDK/Build-Tools, JDK 17, Gradle, Ionic/Angular CLI.
+# Enthält Node 24, Android SDK/Build-Tools, JDK 17, Gradle, Ionic/Angular CLI.
 # iOS-Builds sind nicht möglich (benötigen macOS + Xcode).
+#
+# Node 24: Angular 22 CLI verlangt Node >= 22.22 oder >= 24.15. Das
+# 1-22-bookworm-Image kommt nur mit Node 22.16 (zu alt), deshalb 24.
 #
 # Proxy: Wird nicht im Dockerfile konfiguriert. Falls dein Docker-Daemon
 # (Docker Desktop / Rancher Desktop) einen HTTP(S)-Proxy injiziert, nutzen
 # apt, wget, npm etc. ihn automatisch. Siehe .devcontainer/README.md.
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm
+FROM mcr.microsoft.com/devcontainers/typescript-node:24-bookworm
 
 # ---------- Optional: zusätzliche CA-Zertifikate ----------
 # Alle *.pem / *.crt in .devcontainer/certificates/ werden in den
@@ -69,7 +72,7 @@ RUN yes | sdkmanager --licenses > /dev/null \
  && chown -R node:node "${ANDROID_SDK_ROOT}"
 
 # ---------- Globale npm-Tools ----------
-RUN npm install -g @ionic/cli@latest @angular/cli@17 @capacitor/cli@6 \
+RUN npm install -g @ionic/cli@latest @angular/cli@22 @capacitor/cli@8 \
  && npm cache clean --force
 
 # ---------- Non-root User ----------

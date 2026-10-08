@@ -59,6 +59,9 @@ GoogleService-Info.plist
 .idea/
 *.swp
 *.swo
+*.sw[mnpcod]
+*~
+.history/
 
 # ---------- OS ----------
 .DS_Store

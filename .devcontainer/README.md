@@ -6,7 +6,7 @@ möglich.
 
 ## Enthalten
 
-- Node 20, npm, Ionic CLI 7, Angular CLI 17, Capacitor CLI 6
+- Node 24, npm, Ionic CLI (latest), Angular CLI 22, Capacitor CLI 8
 - OpenJDK 17
 - Android SDK (Platform 34, Build-Tools 34.0.0, Platform-Tools)
 - Vorinstallierte VS Code Extensions (Angular, Ionic, ESLint, Prettier, …)
