@@ -8,10 +8,12 @@ Werkzeuge: VS Code, Git (GitHub), Docker (Devcontainer + CI-Build-Images)
 ## 1. Projekt-Grundgerüst
 
 **Technologie-Stack**
-- Ionic 7 + Angular 17 (Standalone Components)
-- Capacitor 6 für native iOS/Android-Wrapper
-- TypeScript strict mode
+- Ionic 9 + Angular 22 (Standalone Components)
+- Capacitor 8 für native iOS/Android-Wrapper
+- Node 24 (Angular 22 CLI requires >= 22.22 oder >= 24.15)
+- TypeScript 6
 - SCSS für Styles
+- Unit-Tests: vitest (statt Karma/Jest, Ionic-Default seit v9)
 
 **Lokale Persistenz**
 - `@capacitor-community/sqlite` für Rezepte, Zutaten, Schritte
@@ -34,7 +36,10 @@ Werkzeuge: VS Code, Git (GitHub), Docker (Devcontainer + CI-Build-Images)
 rebu/
 ├── .devcontainer/
 │   ├── devcontainer.json
-│   └── Dockerfile              # Dev-Image (Node, Ionic/Angular CLI, Android SDK, JDK)
+│   ├── docker-compose.yml
+│   ├── devenv.dockerfile       # Dev-Image (Node, Ionic/Angular CLI, Android SDK, JDK)
+│   ├── post-start.sh
+│   └── certificates/           # Optionale CA-Zertifikate (gitignored)
 ├── .github/
 │   ├── workflows/              # GitHub Actions (ci.yml, release.yml)
 │   ├── ISSUE_TEMPLATE/
@@ -73,10 +78,15 @@ rebu/
 
 ## 3. Docker-Setup
 
-### 3a. Devcontainer (`.devcontainer/Dockerfile`)
-- Basis: `mcr.microsoft.com/devcontainers/typescript-node:20`
-- Zusätzlich: OpenJDK 17, Android SDK + Build-Tools 34, Ionic CLI, Angular CLI, Gradle
-- Non-root user `node`, Workspace gemountet
+### 3a. Devcontainer (`.devcontainer/devenv.dockerfile`)
+- Basis: `mcr.microsoft.com/devcontainers/typescript-node:24-bookworm`
+- Zusätzlich: OpenJDK 17, Android SDK + Build-Tools 34, Ionic CLI, Angular CLI 22,
+  Capacitor CLI 8, Gradle
+- Non-root user `node`, Workspace via docker-compose bind-mount
+- Optionale CA-Zertifikate: `.devcontainer/certificates/*.pem|*.crt` werden
+  beim Image-Build in den System-CA-Store aufgenommen (Inhalt gitignored)
+- Proxy: via Docker-Daemon (Docker Desktop / Rancher Desktop), nicht per
+  dockerfile/compose – siehe `.devcontainer/README.md`
 - VS Code Extensions preinstalled via `devcontainer.json`:
   - `Angular.ng-template`
   - `Ionic.ionic`
@@ -90,12 +100,14 @@ rebu/
 - iOS-Builds: **nicht im Container** – Hinweis im README (macOS + Xcode nötig)
 
 ### 3b. CI-Build-Image (`docker/build.Dockerfile`)
-- Schlank: Node 20 Alpine + Chromium (für headless Karma/Playwright)
+- Schlank: Node 20 Bookworm + Chromium (für headless Karma/Playwright)
 - Für Jobs: `lint`, `test`, `build:web`
+- *TODO: auf Node 24 anheben, parallel zum Devcontainer-Upgrade.*
 
 ### 3c. CI-Android-Image (`docker/android.Dockerfile`)
 - Node 20 + JDK 17 + Android SDK + Gradle
 - Für Job: `build:android` (unsigned APK als Artefakt)
+- *TODO: auf Node 24 anheben.*
 
 ---
 
@@ -186,7 +198,7 @@ Läuft auf `macos-latest` (kein Docker möglich); baut nur bei Tags `v*`. Benöt
 
 ## 8. Qualitätssicherung
 
-- **Unit-Tests:** Jest oder Karma für Services (Saison-/KH-Berechnung, Import-Parsing, Mengen-Skalierung) – Ziel ≥ 80 % für `core/`
+- **Unit-Tests:** vitest (Ionic/Angular 9/22 Default) für Services (Saison-/KH-Berechnung, Import-Parsing, Mengen-Skalierung) – Ziel ≥ 80 % für `core/`
 - **E2E:** Playwright für kritische Flows (Erfassen → Kochen → Teilen → Import)
 - **Lint:** ESLint (Angular + TS strict) + Stylelint
 - **Format:** Prettier
@@ -198,11 +210,11 @@ Läuft auf `macos-latest` (kein Docker möglich); baut nur bei Tags `v*`. Benöt
 ## 9. Umsetzungsreihenfolge (konkrete nächste Schritte)
 
 1. `git init`, `.gitignore`, `.editorconfig`, `.gitattributes` anlegen ✅
-2. GitHub-Repository erstellen (via `gh repo create` oder Web), Remote `origin` verknüpfen, `main` pushen, Branch Protection Rule setzen
-3. `.devcontainer/` + `docker/`-Dockerfiles schreiben, lokal testen (`docker build`)
-4. Devcontainer in VS Code öffnen → `npm init @ionic/angular` (blank, standalone)
-5. Capacitor init, Android-Plattform hinzufügen
-6. ESLint/Prettier/Husky/commitlint konfigurieren
+2. GitHub-Repository erstellen (via `gh repo create` oder Web), Remote `origin` verknüpfen, `main` pushen, Branch Protection Rule setzen ✅
+3. `.devcontainer/` + `docker/`-Dockerfiles schreiben, lokal testen (`docker build`) ✅
+4. Devcontainer in VS Code öffnen → `ionic start rebu blank --type=angular` (standalone) ✅
+5. Capacitor init, Android-Plattform hinzufügen (Capacitor-core ist durch ionic start bereits dabei; `cap init` + `cap add android` fehlt noch)
+6. ESLint/Prettier/Husky/commitlint konfigurieren (ESLint ist durch ionic start bereits dabei; Prettier/Husky/commitlint fehlen)
 7. `.github/workflows/ci.yml` mit `install`/`lint`/`test`/`build-web` grün bekommen
 8. Dependabot + PR-Template + CODEOWNERS einrichten
 9. Erster Feature-Branch + PR als Pipeline-Test
