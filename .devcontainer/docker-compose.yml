@@ -3,11 +3,6 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/devenv.dockerfile
-      args:
-        # Build-time proxy settings. Leer wenn nicht gesetzt (lokal via .env).
-        HTTP_PROXY: "${HTTP_PROXY:-}"
-        HTTPS_PROXY: "${HTTPS_PROXY:-}"
-        NO_PROXY: "${NO_PROXY:-localhost,127.0.0.1}"
 
     user: "node"
     command: sleep infinity
@@ -18,12 +13,6 @@ services:
       - rebu_user_data:/mnt/user_data
 
     working_dir: /workspace
-
-    environment:
-      # Runtime proxy settings. Werden vom devcontainer.json remoteEnv ggf. ergänzt.
-      HTTP_PROXY: "${HTTP_PROXY:-}"
-      HTTPS_PROXY: "${HTTPS_PROXY:-}"
-      NO_PROXY: "${NO_PROXY:-localhost,127.0.0.1}"
 
 volumes:
   rebu_user_data:

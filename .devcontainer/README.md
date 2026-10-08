@@ -19,14 +19,34 @@ möglich.
 
 ## Hinter einem Corporate-Proxy
 
-Falls du einen Proxy brauchst:
+Proxy-Settings werden **nicht** im docker-compose.yml oder Dockerfile
+konfiguriert, sondern auf Docker-Daemon-Ebene. Der Daemon injiziert dann
+automatisch `HTTP_PROXY`/`HTTPS_PROXY`/`NO_PROXY` in jeden Build und
+Container, und apt/wget/npm/sdkmanager nutzen sie transparent.
 
-1. `.devcontainer/.env.example` nach `.devcontainer/.env` kopieren und die
-   Werte setzen. Diese Datei ist gitignored.
-2. Falls dein Proxy TLS-Interception macht: Firmen-CA-Zertifikat(e) als
-   `*.pem` oder `*.crt` in `.devcontainer/certificates/` ablegen (ebenfalls
-   gitignored). Werden beim Image-Build in den System-CA-Store aufgenommen.
+### Rancher Desktop
+
+Settings → Preferences → Virtual Machine → Proxy. HTTP/HTTPS-Proxy
+eintragen. Rancher Desktop sorgt dafür, dass der Proxy-Host aus dem
+Container-Netz erreichbar ist (DNS/Routing).
+
+### Docker Desktop
+
+Settings → Resources → Proxies. Analog.
+
+### TLS-Interception / Firmen-CA-Zertifikate
+
+Wenn dein Proxy TLS aufbricht, braucht der Container das Firmen-CA-Zertifikat:
+
+1. Zertifikat als `*.pem` oder `*.crt` in `.devcontainer/certificates/`
+   ablegen (gitignored).
+2. Beim Image-Build (`devenv.dockerfile`) werden sie automatisch in den
+   System-CA-Store aufgenommen (`update-ca-certificates`).
 3. Container rebuilden ("Dev Containers: Rebuild Container").
+
+Node.js nutzt den System-CA-Store nicht automatisch. Falls nötig, in
+`containerEnv` von `devcontainer.json`:
+`NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt`.
 
 ## Dateien
 
@@ -36,5 +56,5 @@ Falls du einen Proxy brauchst:
 | `docker-compose.yml` | Service-Definition (bind-mount Workspace etc.) |
 | `devenv.dockerfile` | Image-Build: Node + JDK + Android SDK + CLIs |
 | `post-start.sh` | Läuft bei jedem Container-Start (Permissions, Infos) |
-| `.env.example` | Vorlage für lokale Proxy-Konfiguration (nicht committed als `.env`) |
+| `.env.example` | Vorlage für lokale Compose-Env-Variablen (nicht committed als `.env`) |
 | `certificates/` | Optionale CA-Zertifikate (Inhalt gitignored) |
