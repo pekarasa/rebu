@@ -1,0 +1,56 @@
+# Normalisierung: alles standardmässig als Text behandeln, LF beim Checkin
+* text=auto eol=lf
+
+# Explizit Text
+*.ts        text eol=lf
+*.js        text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.json      text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.md        text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.xml       text eol=lf
+*.svg       text eol=lf
+*.sh        text eol=lf
+Dockerfile  text eol=lf
+*.gradle    text eol=lf
+*.kt        text eol=lf
+*.java      text eol=lf
+
+# Windows-spezifisch
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# Binärdateien
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.webp      binary
+*.ico       binary
+*.pdf       binary
+*.zip       binary
+*.gz        binary
+*.jar       binary
+*.keystore  binary
+*.jks       binary
+*.p12       binary
+*.mobileprovision binary
+*.ttf       binary
+*.otf       binary
+*.woff      binary
+*.woff2     binary
+
+# Lockfiles – kein Merge/Diff-Noise
+package-lock.json  -diff
+yarn.lock          -diff
+pnpm-lock.yaml     -diff
+
+# Linguist (GitLab/GitHub Statistik): generierte Platform-Ordner ausblenden
+android/** linguist-generated=false
+ios/**     linguist-generated=false
