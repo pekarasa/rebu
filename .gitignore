@@ -69,6 +69,15 @@ ehthumbs.db
 # ---------- Docker ----------
 .docker/
 
+# ---------- Devcontainer: lokale/firmen-spezifische Konfiguration ----------
+# Proxy, CA-Zertifikate etc. gehen nicht ins Public-Repo.
+.devcontainer/.env
+.devcontainer/certificates/*
+!.devcontainer/certificates/.gitkeep
+!.devcontainer/certificates/README.md
+.devcontainer/docker-compose.local.yml
+.devcontainer/devcontainer.local.json
+
 # ---------- Logs ----------
 logs/
 *.log
