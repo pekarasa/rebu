@@ -72,7 +72,14 @@ RUN yes | sdkmanager --licenses > /dev/null \
  && chown -R node:node "${ANDROID_SDK_ROOT}"
 
 # ---------- Globale npm-Tools ----------
-RUN npm install -g @ionic/cli@latest @angular/cli@22 @capacitor/cli@8 \
+# opencode-ai: AI coding agent CLI, muss im Container verfügbar sein, damit
+# Sessions innerhalb des Devcontainers laufen können (statt via docker exec).
+# Version gepinnt für Reproduzierbarkeit; Updates bewusst via PR.
+RUN npm install -g \
+      @ionic/cli@latest \
+      @angular/cli@22 \
+      @capacitor/cli@8 \
+      opencode-ai@1.18.35 \
  && npm cache clean --force
 
 # ---------- Non-root User ----------
