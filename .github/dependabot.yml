@@ -1,0 +1,40 @@
+version: 2
+
+updates:
+  # npm dependencies
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '07:00'
+      timezone: 'Europe/Zurich'
+    open-pull-requests-limit: 10
+    labels:
+      - 'dependencies'
+    groups:
+      angular:
+        patterns:
+          - '@angular/*'
+          - 'angular-eslint'
+          - 'typescript-eslint'
+      capacitor:
+        patterns:
+          - '@capacitor/*'
+      ionic:
+        patterns:
+          - '@ionic/*'
+          - 'ionicons'
+
+  # GitHub Actions
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '07:00'
+      timezone: 'Europe/Zurich'
+    open-pull-requests-limit: 5
+    labels:
+      - 'dependencies'
+      - 'ci'
