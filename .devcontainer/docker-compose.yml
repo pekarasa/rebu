@@ -29,6 +29,12 @@ services:
       # Container `/connect` nutzen.
       - ${OPENCODE_AUTH_FILE}:/home/node/.local/share/opencode/auth.json:ro
       - ${OPENCODE_CONFIG_FILE}:/home/node/.config/opencode/opencode.jsonc:ro
+      # Rules/Instructions-Ordner read-only. Pfad wird ueber
+      # OPENCODE_RULES_DIR in .devcontainer/.env gesteuert; muss zu den
+      # relativen `instructions`-Pfaden in opencode.jsonc passen. Das
+      # Container-Ziel liegt zwei Ebenen ueber ~/.config/opencode/, also
+      # direkt unter $HOME.
+      - ${OPENCODE_RULES_DIR}:/home/node/OneDrive - THALES SA/Documents/Cline/Rules:ro
 
     environment:
       # LLM-Provider-Keys und opencode-spezifische ENVs vom Host durchreichen,
@@ -46,6 +52,14 @@ services:
       - OPENCODE_PROVIDER
       - OPENCODE_MODEL
       - OPENCODE_THEME
+      # Firmen-interne LLM-Gateways (z. B. Thales Synapse). Key wird vom
+      # Host (User-ENV oder Shell) durchgereicht, Pfad/Modelle kommen aus
+      # dem gemounteten opencode.jsonc.
+      - SYNAPSE_API_KEY
+      # Erweiterungen fuer Proxy-Routing (siehe .devcontainer/.env.example).
+      # Beide Varianten (gross/klein) setzen, weil Tools inkonsistent sind.
+      - NO_PROXY
+      - no_proxy
 
     working_dir: /workspace
 

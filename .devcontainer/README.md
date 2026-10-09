@@ -33,11 +33,34 @@ Die Pfade werden über `OPENCODE_AUTH_FILE` und `OPENCODE_CONFIG_FILE` in
 `.devcontainer/.env` gesteuert (gitignored). Beide Host-Dateien müssen
 existieren, sonst scheitert der Container-Start.
 
+Falls `opencode.jsonc` relative `instructions`-Pfade enthält (z. B.
+`../../OneDrive - THALES SA/Documents/Cline/Rules/*.md`), muss der Ordner
+zusätzlich als Bind-Mount gereicht werden. Pfad via `OPENCODE_RULES_DIR`.
+
 Zusätzlich reicht `docker-compose.yml` übliche LLM-Provider-API-Keys
 (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) sowie `OPENCODE_*`-Variablen aus
-der Host-Shell durch, falls dort gesetzt. Sessions/Storage persistieren im
-Container-FS (nicht gemountet), um Konflikte mit laufendem Host-opencode zu
-vermeiden.
+der Host-Shell oder `.devcontainer/.env` durch. Firmen-interne Gateways
+(z. B. `SYNAPSE_API_KEY` für den Thales-Synapse-Gateway) sind ebenfalls in
+der Pass-through-Liste.
+
+Sessions/Storage persistieren im Container-FS (nicht gemountet), um
+Konflikte mit laufendem Host-opencode zu vermeiden.
+
+### Firmen-interne LLM-Hosts hinter Zscaler
+
+Zscaler erlaubt zwar HTTP-CONNECT-Tunnel zu Firmen-internen HTTPS-Hosts
+(z. B. `llm.synapse.thalescloud.io`), bricht aber das TLS-Backend-Handshake
+unvorhersehbar ab. Workaround: Host in `NO_PROXY`/`no_proxy` in
+`.devcontainer/.env` eintragen, dann geht der Container direkt via
+Firmen-LAN. Beispiel:
+
+```
+NO_PROXY=127.0.0.1,localhost,llm.synapse.thalescloud.io,.thalescloud.io
+no_proxy=${NO_PROXY}
+```
+
+Die vom Docker-Daemon injizierten `NO_PROXY`-Defaults werden durch
+`docker-compose.yml` nicht ersetzt, sondern per Shell-ENV überschrieben.
 
 ## Hinter einem Corporate-Proxy
 
