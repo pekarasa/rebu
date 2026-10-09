@@ -2,20 +2,24 @@
 # Verwendet in GitHub Actions für: build-android.
 #
 # Basis: Microsoft Container Registry (schneller und zuverlässiger als Docker Hub).
+# JDK 21: Capacitor 8 setzt sourceCompatibility = JavaVersion.VERSION_21 voraus.
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm
+FROM mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \
-    JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+    JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     ANDROID_HOME=/opt/android-sdk \
     ANDROID_CMDLINE_TOOLS_VERSION=11076708 \
-    ANDROID_PLATFORM_VERSION=34 \
-    ANDROID_BUILD_TOOLS_VERSION=34.0.0
+    ANDROID_PLATFORM_VERSION=36 \
+    ANDROID_BUILD_TOOLS_VERSION=36.0.0
 
 USER root
-RUN apt-get update && apt-get install -y --no-install-recommends \
-      openjdk-17-jdk-headless \
+RUN apt-get update \
+ && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends \
+      -t bookworm-backports openjdk-21-jdk-headless \
       unzip \
       zip \
       wget \

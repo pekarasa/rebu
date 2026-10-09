@@ -4,7 +4,7 @@
 #
 # Basis: Microsoft Container Registry (schneller und zuverlässiger als Docker Hub).
 
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-20-bookworm
+FROM mcr.microsoft.com/devcontainers/typescript-node:1-24-bookworm
 
 ENV DEBIAN_FRONTEND=noninteractive \
     CHROME_BIN=/usr/bin/chromium \

@@ -1,9 +1,11 @@
 # Dev-Container-Image für Rebu (Ionic + Angular + Capacitor)
-# Enthält Node 24, Android SDK/Build-Tools, JDK 17, Gradle, Ionic/Angular CLI.
+# Enthält Node 24, Android SDK/Build-Tools, JDK 21, Gradle, Ionic/Angular CLI.
 # iOS-Builds sind nicht möglich (benötigen macOS + Xcode).
 #
 # Node 24: Angular 22 CLI verlangt Node >= 22.22 oder >= 24.15. Das
 # 1-22-bookworm-Image kommt nur mit Node 22.16 (zu alt), deshalb 24.
+#
+# JDK 21: Capacitor 8 setzt sourceCompatibility = JavaVersion.VERSION_21 voraus.
 #
 # Proxy: Wird nicht im Dockerfile konfiguriert. Falls dein Docker-Daemon
 # (Docker Desktop / Rancher Desktop) einen HTTP(S)-Proxy injiziert, nutzen
@@ -29,9 +31,13 @@ RUN set -e; \
     if [ "$installed" = "1" ]; then update-ca-certificates; fi; \
     rm -rf /tmp/extra-certs
 
-# ---------- Basispakete + JDK ----------
-RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      openjdk-17-jdk-headless \
+# ---------- Basispakete + JDK 21 ----------
+# openjdk-21-jdk-headless ist in bookworm-backports verfügbar.
+RUN apt-get update \
+ && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
+ && apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      -t bookworm-backports openjdk-21-jdk-headless \
       unzip \
       zip \
       wget \
@@ -41,14 +47,14 @@ RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-ins
       sudo \
     && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 
 # ---------- Android SDK ----------
 ENV ANDROID_SDK_ROOT=/opt/android-sdk \
     ANDROID_HOME=/opt/android-sdk \
     ANDROID_CMDLINE_TOOLS_VERSION=11076708 \
-    ANDROID_PLATFORM_VERSION=34 \
-    ANDROID_BUILD_TOOLS_VERSION=34.0.0
+    ANDROID_PLATFORM_VERSION=36 \
+    ANDROID_BUILD_TOOLS_VERSION=36.0.0
 
 RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
  && cd /tmp \
