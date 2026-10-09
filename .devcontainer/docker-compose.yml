@@ -11,6 +11,41 @@ services:
       # Workspace bind-mount (must match devcontainer.json workspaceFolder)
       - ..:/workspace:cached
       - rebu_user_data:/mnt/user_data
+      # Host-opencode-Credentials/-Config read-only in Container-User-Home spiegeln,
+      # damit opencode-Sessions im Container ohne erneutes /connect laufen.
+      #
+      # Pfade werden ueber zwei ENV-Variablen gesteuert, die in
+      # .devcontainer/.env (gitignored) gesetzt werden:
+      #   OPENCODE_AUTH_FILE   -> Pfad zu auth.json auf dem Host
+      #   OPENCODE_CONFIG_FILE -> Pfad zu opencode.jsonc auf dem Host
+      #
+      # Beispiele:
+      #   Linux/macOS: OPENCODE_AUTH_FILE=${HOME}/.local/share/opencode/auth.json
+      #   Windows:     OPENCODE_AUTH_FILE=${USERPROFILE}/.local/share/opencode/auth.json
+      #
+      # Beide Dateien muessen auf dem Host existieren, sonst scheitert der
+      # Container-Start. Falls du die Mounts nicht brauchst: Zeilen aus
+      # .devcontainer/.env weglassen bzw. hier auskommentieren und im
+      # Container `/connect` nutzen.
+      - ${OPENCODE_AUTH_FILE}:/home/node/.local/share/opencode/auth.json:ro
+      - ${OPENCODE_CONFIG_FILE}:/home/node/.config/opencode/opencode.jsonc:ro
+
+    environment:
+      # LLM-Provider-Keys und opencode-spezifische ENVs vom Host durchreichen,
+      # falls dort gesetzt. Werte landen NICHT im Repo (nur Namen hier referenziert).
+      - ANTHROPIC_API_KEY
+      - OPENAI_API_KEY
+      - GEMINI_API_KEY
+      - GOOGLE_API_KEY
+      - GROQ_API_KEY
+      - MISTRAL_API_KEY
+      - OPENROUTER_API_KEY
+      - DEEPSEEK_API_KEY
+      - XAI_API_KEY
+      - OPENCODE_API_KEY
+      - OPENCODE_PROVIDER
+      - OPENCODE_MODEL
+      - OPENCODE_THEME
 
     working_dir: /workspace
 

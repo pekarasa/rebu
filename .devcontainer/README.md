@@ -14,8 +14,30 @@ möglich.
 ## Benutzung
 
 1. VS Code mit "Dev Containers"-Extension öffnen.
-2. "Reopen in Container" ausführen.
-3. Beim ersten Start wird das Image gebaut (ca. 3 Minuten + Download).
+2. `.devcontainer/.env.example` nach `.devcontainer/.env` kopieren und die
+   opencode-Pfade anpassen (siehe Abschnitt *opencode im Container* unten).
+3. "Reopen in Container" ausführen.
+4. Beim ersten Start wird das Image gebaut (ca. 3 Minuten + Download).
+
+## opencode im Container
+
+Der Devcontainer installiert die `opencode`-CLI global (siehe
+`devenv.dockerfile`). Damit du im Container ohne erneutes `/connect` arbeiten
+kannst, werden folgende Host-Dateien read-only ins Container-User-Home
+gespiegelt:
+
+- `~/.local/share/opencode/auth.json` → `/home/node/.local/share/opencode/auth.json`
+- `~/.config/opencode/opencode.jsonc` → `/home/node/.config/opencode/opencode.jsonc`
+
+Die Pfade werden über `OPENCODE_AUTH_FILE` und `OPENCODE_CONFIG_FILE` in
+`.devcontainer/.env` gesteuert (gitignored). Beide Host-Dateien müssen
+existieren, sonst scheitert der Container-Start.
+
+Zusätzlich reicht `docker-compose.yml` übliche LLM-Provider-API-Keys
+(`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, …) sowie `OPENCODE_*`-Variablen aus
+der Host-Shell durch, falls dort gesetzt. Sessions/Storage persistieren im
+Container-FS (nicht gemountet), um Konflikte mit laufendem Host-opencode zu
+vermeiden.
 
 ## Hinter einem Corporate-Proxy
 
@@ -56,5 +78,5 @@ Node.js nutzt den System-CA-Store nicht automatisch. Falls nötig, in
 | `docker-compose.yml` | Service-Definition (bind-mount Workspace etc.) |
 | `devenv.dockerfile` | Image-Build: Node + JDK + Android SDK + CLIs |
 | `post-start.sh` | Läuft bei jedem Container-Start (Permissions, Infos) |
-| `.env.example` | Vorlage für lokale Compose-Env-Variablen (nicht committed als `.env`) |
+| `.env.example` | Vorlage für lokale Compose-Env-Variablen (nach `.env` kopieren, gitignored) |
 | `certificates/` | Optionale CA-Zertifikate (Inhalt gitignored) |
