@@ -1,5 +1,12 @@
 {
   "recommendations": [
-    "Webnative.webnative"
+    "Angular.ng-template",
+    "Ionic.ionic",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "editorconfig.editorconfig",
+    "GitHub.vscode-pull-request-github",
+    "GitHub.vscode-github-actions",
+    "ms-azuretools.vscode-docker"
   ]
 }
