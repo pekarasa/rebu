@@ -75,6 +75,8 @@ export class RecipeRepository {
     recipe.zutaten = await this.insertIngredients(id, data.zutaten ?? []);
     recipe.schritte = await this.insertSteps(id, data.schritte ?? []);
 
+    await this.db.saveToStore?.();
+
     return recipe;
   }
 
@@ -205,6 +207,8 @@ export class RecipeRepository {
       updated.schritte = await this.insertSteps(updated.id, data.schritte);
     }
 
+    await this.db.saveToStore?.();
+
     return updated;
   }
 
@@ -215,6 +219,7 @@ export class RecipeRepository {
   async delete(id: string): Promise<void> {
     // ON DELETE CASCADE entfernt ingredient + step automatisch
     await this.db.connection.run(`DELETE FROM recipe WHERE id = ?`, [id]);
+    await this.db.saveToStore?.();
   }
 
   async deleteAll(): Promise<void> {
@@ -222,6 +227,7 @@ export class RecipeRepository {
     await conn.run(`DELETE FROM ingredient`);
     await conn.run(`DELETE FROM step`);
     await conn.run(`DELETE FROM recipe`);
+    await this.db.saveToStore?.();
   }
 
   // ---------------------------------------------------------------------------

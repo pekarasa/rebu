@@ -57,12 +57,23 @@ export class DatabaseService {
 
   /**
    * Initialisiert die Datenbankverbindung und spielt das Schema ein.
-   * Muss einmalig beim App-Start aufgerufen werden (z.B. in APP_INITIALIZER).
+   * Muss einmalig beim App-Start aufgerufen werden (z.B. in provideAppInitializer).
    */
   async init(): Promise<void> {
     if (this.db) return; // bereits initialisiert
 
     if (!this.isNative) {
+      if (typeof window !== 'undefined') {
+        const { defineCustomElements: defineJeepSqlite } = await import('jeep-sqlite/loader');
+        defineJeepSqlite(window);
+        await customElements.whenDefined('jeep-sqlite');
+      }
+
+      if (typeof document !== 'undefined' && !document.querySelector('jeep-sqlite')) {
+        const jeepEl = document.createElement('jeep-sqlite');
+        document.body.appendChild(jeepEl);
+      }
+
       // Web-Plattform: jeepSqlite-Element muss im DOM vorhanden sein
       await this.sqlite.initWebStore();
     }
@@ -84,6 +95,10 @@ export class DatabaseService {
 
     await this.db.open();
     await this.applySchema();
+
+    if (!this.isNative) {
+      await this.saveToStore();
+    }
   }
 
   /** Gibt die geöffnete DB-Verbindung zurück (wirft, wenn nicht initialisiert). */
@@ -92,6 +107,16 @@ export class DatabaseService {
       throw new Error('DatabaseService: init() wurde noch nicht aufgerufen.');
     }
     return this.db;
+  }
+
+  /**
+   * Speichert geänderte SQLite-Daten im IndexedDB-Store des Browsers.
+   * Auf nativen Plattformen ist diese Methode ein No-Op.
+   */
+  async saveToStore(): Promise<void> {
+    if (!this.isNative) {
+      await this.sqlite.saveToStore(DB_NAME);
+    }
   }
 
   // ---------------------------------------------------------------------------
