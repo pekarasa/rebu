@@ -10,13 +10,16 @@ export interface PhotoResult {
 
 @Injectable({ providedIn: 'root' })
 export class PhotoService {
+  camera = Camera;
+  filesystem = Filesystem;
+
   /**
    * Öffnet den nativen Foto-Dialog (Kamera oder Fotomediathek), speichert das Foto
    * lokal im Capacitor-Dateisystem und gibt den relativen Pfad sowie die Anzeige-URL zurück.
    */
   async pickOrTakePhoto(source: CameraSource = CameraSource.Prompt): Promise<PhotoResult | null> {
     try {
-      const image = await Camera.getPhoto({
+      const image = await this.camera.getPhoto({
         quality: 85,
         allowEditing: false,
         resultType: CameraResultType.DataUrl,
@@ -37,7 +40,7 @@ export class PhotoService {
   async saveDataUrl(dataUrl: string): Promise<PhotoResult> {
     const fileName = `recipe-photos/${uuidv4()}.jpg`;
     try {
-      await Filesystem.writeFile({
+      await this.filesystem.writeFile({
         path: fileName,
         data: dataUrl,
         directory: Directory.Data,
@@ -68,7 +71,7 @@ export class PhotoService {
     }
 
     try {
-      const file = await Filesystem.readFile({
+      const file = await this.filesystem.readFile({
         path: filePath,
         directory: Directory.Data,
       });
@@ -97,7 +100,7 @@ export class PhotoService {
     }
 
     try {
-      await Filesystem.deleteFile({
+      await this.filesystem.deleteFile({
         path: filePath,
         directory: Directory.Data,
       });

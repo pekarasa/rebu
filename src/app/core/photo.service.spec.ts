@@ -6,13 +6,31 @@ import { PhotoService } from './photo.service';
 
 describe('PhotoService', () => {
   let service: PhotoService;
+  let mockCamera: {
+    getPhoto: ReturnType<typeof vi.fn>;
+  };
+  let mockFilesystem: {
+    writeFile: ReturnType<typeof vi.fn>;
+    readFile: ReturnType<typeof vi.fn>;
+    deleteFile: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockCamera = {
+      getPhoto: vi.fn(),
+    };
+    mockFilesystem = {
+      writeFile: vi.fn().mockResolvedValue({ uri: 'file:///path' }),
+      readFile: vi.fn().mockResolvedValue({ data: 'mockbase64' }),
+      deleteFile: vi.fn().mockResolvedValue(undefined),
+    };
+
     TestBed.configureTestingModule({
       providers: [PhotoService],
     });
     service = TestBed.inject(PhotoService);
+    service.camera = mockCamera as unknown as typeof Camera;
+    service.filesystem = mockFilesystem as unknown as typeof Filesystem;
   });
 
   it('gibt null zurück wenn filePath null ist', async () => {
@@ -26,36 +44,34 @@ describe('PhotoService', () => {
   });
 
   it('speichert dataUrl im Dateisystem und liefert Pfad und Url', async () => {
-    vi.mocked(Filesystem.writeFile).mockResolvedValue({ uri: 'file:///path' });
     const dataUrl = 'data:image/jpeg;base64,testdata';
 
     const result = await service.saveDataUrl(dataUrl);
     expect(result.displayUrl).toBe(dataUrl);
     expect(result.filePath).toMatch(/^recipe-photos\/[0-9a-f-]+\.jpg$/);
-    expect(Filesystem.writeFile).toHaveBeenCalledTimes(1);
+    expect(mockFilesystem.writeFile).toHaveBeenCalledTimes(1);
   });
 
   it('liest Datei aus dem Dateisystem und formatiert DataUrl', async () => {
-    vi.mocked(Filesystem.readFile).mockResolvedValue({ data: 'mockbase64' });
-
     const result = await service.getPhotoDisplayUrl('recipe-photos/photo.jpg');
     expect(result).toBe('data:image/jpeg;base64,mockbase64');
+    expect(mockFilesystem.readFile).toHaveBeenCalledTimes(1);
   });
 
   it('bricht pickOrTakePhoto sauber ab bei Fehler oder Abbruch', async () => {
-    vi.mocked(Camera.getPhoto).mockRejectedValue(new Error('User cancelled'));
+    mockCamera.getPhoto.mockRejectedValue(new Error('User cancelled'));
 
     const result = await service.pickOrTakePhoto();
     expect(result).toBeNull();
   });
 
   it('nimmt Foto erfolgreich auf und speichert es', async () => {
-    vi.mocked(Camera.getPhoto).mockResolvedValue({
+    mockCamera.getPhoto.mockResolvedValue({
       dataUrl: 'data:image/jpeg;base64,cameraImage',
       format: 'jpeg',
       saved: false,
     });
-    vi.mocked(Filesystem.writeFile).mockResolvedValue({ uri: 'file:///saved' });
+    mockFilesystem.writeFile.mockResolvedValue({ uri: 'file:///saved' });
 
     const result = await service.pickOrTakePhoto();
     expect(result).not.toBeNull();
@@ -63,8 +79,7 @@ describe('PhotoService', () => {
   });
 
   it('löscht Datei aus dem Dateisystem', async () => {
-    vi.mocked(Filesystem.deleteFile).mockResolvedValue(undefined as never);
     await service.deletePhoto('recipe-photos/photo.jpg');
-    expect(Filesystem.deleteFile).toHaveBeenCalledTimes(1);
+    expect(mockFilesystem.deleteFile).toHaveBeenCalledTimes(1);
   });
 });
