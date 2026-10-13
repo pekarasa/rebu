@@ -1,0 +1,57 @@
+<ion-card
+  class="recipe-card"
+  [routerLink]="['/recipes', recipe.id]"
+  (click)="onCardClicked()"
+  button="true"
+  [attr.aria-label]="'Rezept: ' + recipe.titel"
+>
+  <div class="thumbnail-wrapper">
+    @if (displayPhotoUrl) {
+      <img [src]="displayPhotoUrl" [alt]="'Foto von ' + recipe.titel" class="recipe-image" loading="lazy" />
+    } @else {
+      <div class="photo-placeholder" aria-hidden="true">
+        <ion-icon name="restaurant-outline" class="placeholder-icon"></ion-icon>
+      </div>
+    }
+
+    @if (totalMinutes > 0) {
+      <div class="time-overlay" [attr.aria-label]="'Gesamtzeit ' + totalMinutes + ' Minuten'">
+        <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+        <span>{{ totalMinutes }} Min.</span>
+      </div>
+    }
+  </div>
+
+  <ion-card-header class="card-header">
+    <ion-card-title class="recipe-title">{{ recipe.titel }}</ion-card-title>
+  </ion-card-header>
+
+  <ion-card-content class="card-content">
+    <div class="badge-container">
+      <app-badge
+        [label]="saisonLabel"
+        [color]="saisonColor"
+        icon="leaf-outline"
+        [ariaLabel]="'Saison: ' + saisonLabel"
+      />
+
+      @if (recipe.khTag) {
+        <app-badge
+          [label]="recipe.khTag"
+          color="primary"
+          icon="nutrition-outline"
+          [ariaLabel]="'Kohlenhydrat: ' + recipe.khTag"
+        />
+      }
+
+      @if (recipe.kategorie) {
+        <app-badge
+          [label]="recipe.kategorie"
+          color="secondary"
+          icon="bookmark-outline"
+          [ariaLabel]="'Kategorie: ' + recipe.kategorie"
+        />
+      }
+    </div>
+  </ion-card-content>
+</ion-card>
