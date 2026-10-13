@@ -17,11 +17,19 @@ if (!window.matchMedia) {
     }) as MediaQueryList;
 }
 
-// Global mocks for native Capacitor plugins that require device APIs not present in jsdom
+// Global singleton mocks for native Capacitor plugins so that all files share the exact same mock instances
+const mockCamera = {
+  getPhoto: vi.fn(),
+};
+
+const mockFilesystem = {
+  writeFile: vi.fn().mockResolvedValue({ uri: 'file:///mock' }),
+  readFile: vi.fn().mockResolvedValue({ data: 'mockbase64' }),
+  deleteFile: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock('@capacitor/camera', () => ({
-  Camera: {
-    getPhoto: vi.fn(),
-  },
+  Camera: mockCamera,
   CameraResultType: {
     DataUrl: 'dataUrl',
   },
@@ -31,11 +39,7 @@ vi.mock('@capacitor/camera', () => ({
 }));
 
 vi.mock('@capacitor/filesystem', () => ({
-  Filesystem: {
-    writeFile: vi.fn(),
-    readFile: vi.fn(),
-    deleteFile: vi.fn(),
-  },
+  Filesystem: mockFilesystem,
   Directory: {
     Data: 'DATA',
   },

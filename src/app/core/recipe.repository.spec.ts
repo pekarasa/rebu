@@ -161,8 +161,43 @@ class InMemoryDb {
     }
 
     if (/SELECT DISTINCT r\.\* FROM recipe r/i.test(s)) {
-      // findAll – minimale Unterstützung ohne Filter/Join
-      return { values: [...this.table('recipe')] };
+      let rows = [...this.table('recipe')];
+      const hasIngredientJoin = /LEFT JOIN ingredient/i.test(s);
+
+      if (hasIngredientJoin && params.length >= 2) {
+        const term = ((params[0] as string) || '').replace(/%/g, '').toLowerCase();
+        rows = rows.filter((r) => {
+          const matchTitle = ((r['titel'] as string) || '').toLowerCase().includes(term);
+          const ingredients = this.table('ingredient').filter((i) => i['rezeptId'] === r['id']);
+          const matchIngredient = ingredients.some((i) =>
+            ((i['name'] as string) || '').toLowerCase().includes(term),
+          );
+          return matchTitle || matchIngredient;
+        });
+      }
+
+      const khIndex = hasIngredientJoin ? 2 : 0;
+      if (/r\.khTag = \?/i.test(s) && params[khIndex]) {
+        const khTag = params[khIndex] as string;
+        rows = rows.filter((r) => r['khTag'] === khTag);
+      }
+
+      if (/ORDER BY r\.erstelltAm DESC/i.test(s)) {
+        rows.sort((a, b) => ((b['erstelltAm'] as string) > (a['erstelltAm'] as string) ? 1 : -1));
+      } else if (/ORDER BY \(COALESCE/i.test(s)) {
+        rows.sort((a, b) => {
+          const timeA =
+            ((a['zeitVorbereitung'] as number) || 0) + ((a['zeitKochen'] as number) || 0);
+          const timeB =
+            ((b['zeitVorbereitung'] as number) || 0) + ((b['zeitKochen'] as number) || 0);
+          if (timeA !== timeB) return timeA - timeB;
+          return (a['titel'] as string) > (b['titel'] as string) ? 1 : -1;
+        });
+      } else {
+        rows.sort((a, b) => ((a['titel'] as string) > (b['titel'] as string) ? 1 : -1));
+      }
+
+      return { values: rows };
     }
 
     return { values: [] };
@@ -276,6 +311,85 @@ describe('RecipeRepository', () => {
     it('gibt leeres Array zurück wenn keine Rezepte vorhanden', async () => {
       const all = await repo.findAll();
       expect(all).toHaveLength(0);
+    });
+
+    it('filtert nach Volltextsuche im Titel', async () => {
+      await repo.create(baseRecipe(), [], 'Pasta');
+      await repo.create({ ...baseRecipe(), titel: 'Kürbisrisotto' }, [], 'Reis');
+
+      const results = await repo.findAll({ suche: 'risotto' });
+      expect(results).toHaveLength(1);
+      expect(results[0].titel).toBe('Kürbisrisotto');
+    });
+
+    it('filtert nach Volltextsuche in den Zutaten', async () => {
+      await repo.create(baseRecipe(), [], 'Pasta'); // enthält Spaghetti und Hackfleisch
+      await repo.create(
+        {
+          ...baseRecipe(),
+          titel: 'Gemüsesuppe',
+          zutaten: [{ reihenfolge: 0, menge: 2, einheit: 'Stück', name: 'Karotten' }],
+        },
+        [],
+        null,
+      );
+
+      const results = await repo.findAll({ suche: 'hackfleisch' });
+      expect(results).toHaveLength(1);
+      expect(results[0].titel).toBe('Spaghetti Bolognese');
+    });
+
+    it('filtert nach Saisonmonaten und schliesst ganzjährige Rezepte ein', async () => {
+      // Sommer-Rezept (Juni–August)
+      await repo.create({ ...baseRecipe(), titel: 'Sommersalat' }, [6, 7, 8], null);
+      // Herbst-Rezept (September–November)
+      await repo.create({ ...baseRecipe(), titel: 'Kürbissuppe' }, [9, 10, 11], null);
+      // Ganzjähriges Rezept
+      await repo.create({ ...baseRecipe(), titel: 'Rührei' }, [], null);
+
+      // Filter nach Herbst (Monate 9, 10, 11)
+      const herbstRezepte = await repo.findAll({ saisonMonate: [9, 10, 11] });
+      const titles = herbstRezepte.map((r) => r.titel);
+
+      expect(titles).toContain('Kürbissuppe');
+      expect(titles).toContain('Rührei');
+      expect(titles).not.toContain('Sommersalat');
+    });
+
+    it('filtert nach KH-Tag', async () => {
+      await repo.create(baseRecipe(), [], 'Pasta');
+      await repo.create({ ...baseRecipe(), titel: 'Pilzrisotto' }, [], 'Reis');
+
+      const pastaRezepte = await repo.findAll({ khTag: 'Pasta' });
+      expect(pastaRezepte).toHaveLength(1);
+      expect(pastaRezepte[0].titel).toBe('Spaghetti Bolognese');
+    });
+
+    it('sortiert alphabetisch, nach Zeitaufwand und nach Erstellungsdatum', async () => {
+      const r1 = await repo.create(
+        { ...baseRecipe(), titel: 'Zitronenkuchen', zeitVorbereitung: 10, zeitKochen: 50 },
+        [],
+        null,
+      );
+      // kleiner Zeitversatz
+      await new Promise((r) => setTimeout(r, 5));
+      const r2 = await repo.create(
+        { ...baseRecipe(), titel: 'Apfelmus', zeitVorbereitung: 5, zeitKochen: 10 },
+        [],
+        null,
+      );
+
+      const alpha = await repo.findAll({ sortierung: 'alphabetisch' });
+      expect(alpha[0].titel).toBe('Apfelmus');
+      expect(alpha[1].titel).toBe('Zitronenkuchen');
+
+      const time = await repo.findAll({ sortierung: 'zeitaufwand' });
+      expect(time[0].titel).toBe('Apfelmus'); // 15 Min vor 60 Min
+      expect(time[1].titel).toBe('Zitronenkuchen');
+
+      const newest = await repo.findAll({ sortierung: 'neuste-zuerst' });
+      expect(newest[0].id).toBe(r2.id);
+      expect(newest[1].id).toBe(r1.id);
     });
   });
 
