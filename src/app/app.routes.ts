@@ -2,10 +2,6 @@ import { Routes } from '@angular/router';
 
 export const routes: Routes = [
   {
-    path: 'home',
-    loadComponent: () => import('./home/home.page').then((m) => m.HomePage),
-  },
-  {
     path: 'recipes/new',
     loadComponent: () =>
       import('./features/recipe-edit/recipe-edit.page').then((m) => m.RecipeEditPage),
@@ -16,8 +12,18 @@ export const routes: Routes = [
       import('./features/recipe-edit/recipe-edit.page').then((m) => m.RecipeEditPage),
   },
   {
+    path: 'recipes',
+    loadComponent: () =>
+      import('./features/recipe-list/recipe-list.page').then((m) => m.RecipeListPage),
+  },
+  {
+    path: 'home',
+    redirectTo: 'recipes',
+    pathMatch: 'full',
+  },
+  {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'recipes',
     pathMatch: 'full',
   },
 ];
