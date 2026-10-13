@@ -1,0 +1,286 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-button (click)="onCancel()" color="medium">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    <ion-title>{{ isEditMode ? 'Rezept bearbeiten' : 'Rezept erfassen' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onSave()" [strong]="true" color="primary">
+        <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+        Speichern
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding">
+  <!-- Statusanzeige für automatische Zwischenspeicherung -->
+  @if (draftSavedAt) {
+  <div class="auto-save-indicator">
+    <ion-icon name="cloud-done-outline"></ion-icon>
+    <span>Entwurf gespeichert ({{ draftSavedAt | date: 'HH:mm:ss' }})</span>
+  </div>
+  }
+
+  <form [formGroup]="form">
+    <!-- ABSCHNITT: BASIS-INFORMATIONEN -->
+    <ion-card class="form-section photo-card">
+      @if (photoDisplayUrl) {
+      <div class="photo-container">
+        <img [src]="photoDisplayUrl" alt="Rezeptfoto Vorschau" />
+        <div class="photo-overlay-actions">
+          <ion-button size="small" fill="solid" color="light" (click)="onPickPhoto()">
+            <ion-icon slot="icon-only" name="camera-outline"></ion-icon>
+          </ion-button>
+          <ion-button size="small" fill="solid" color="danger" (click)="onRemovePhoto()">
+            <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </div>
+      } @else {
+      <div class="no-photo-placeholder">
+        <ion-icon name="image-outline"></ion-icon>
+        <p>Füge ein Foto von deinem Gericht hinzu</p>
+        <div class="photo-buttons">
+          <ion-button fill="outline" size="small" (click)="onPickPhoto()">
+            <ion-icon slot="start" name="camera-outline"></ion-icon>
+            Foto aufnehmen / wählen
+          </ion-button>
+          <ion-button fill="clear" size="small" (click)="fileInput.click()">Datei wählen</ion-button>
+        </div>
+      </div>
+      }
+      <input #fileInput type="file" accept="image/*" style="display: none" (change)="onFileSelected($event)" />
+    </ion-card>
+
+    <ion-card class="form-section">
+      <ion-card-header>
+        <ion-card-title>Basis-Informationen</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-list lines="none">
+          <!-- Titel (Pflicht) -->
+          <ion-item>
+            <ion-input
+              label="Titel *"
+              labelPlacement="stacked"
+              placeholder="z. B. Spaghetti Bolognese"
+              formControlName="titel"
+              [clearInput]="true"
+              errorText="Bitte gib einen Titel an"
+            ></ion-input>
+          </ion-item>
+
+          <!-- Kategorie -->
+          <ion-item>
+            <ion-select
+              label="Kategorie"
+              labelPlacement="stacked"
+              placeholder="Kategorie wählen"
+              formControlName="kategorie"
+              interface="action-sheet"
+              cancelText="Abbrechen"
+            >
+              @for (kat of categories; track kat) {
+              <ion-select-option [value]="kat">{{ kat }}</ion-select-option>
+              }
+            </ion-select>
+          </ion-item>
+
+          <!-- Portionen (Pflicht) -->
+          <ion-item>
+            <ion-input
+              label="Portionen *"
+              labelPlacement="stacked"
+              type="number"
+              min="1"
+              formControlName="portionen"
+              errorText="Mindestens 1 Portion"
+            ></ion-input>
+          </ion-item>
+
+          <!-- Zeitaufwand -->
+          <ion-grid class="ion-no-padding">
+            <ion-row>
+              <ion-col size="6">
+                <ion-item>
+                  <ion-input
+                    label="Vorbereitung (Min.)"
+                    labelPlacement="stacked"
+                    type="number"
+                    min="0"
+                    placeholder="15"
+                    formControlName="zeitVorbereitung"
+                  ></ion-input>
+                </ion-item>
+              </ion-col>
+              <ion-col size="6">
+                <ion-item>
+                  <ion-input
+                    label="Kochen (Min.)"
+                    labelPlacement="stacked"
+                    type="number"
+                    min="0"
+                    placeholder="30"
+                    formControlName="zeitKochen"
+                  ></ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <!-- Notizen / Tipps -->
+          <ion-item>
+            <ion-textarea
+              label="Notizen / Tipps"
+              labelPlacement="stacked"
+              placeholder="Optionale Hinweise, Beilagenempfehlungen..."
+              formControlName="notizen"
+              [autoGrow]="true"
+              rows="3"
+            ></ion-textarea>
+          </ion-item>
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- ABSCHNITT: ZUTATEN -->
+    <ion-card class="form-section">
+      <ion-card-header>
+        <ion-card-title>Zutaten *</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div cdkDropList (cdkDropListDropped)="onDropIngredient($event)" class="cdk-drag-list">
+          @for (group of zutatenControls; track group; let i = $index) {
+          <div class="drag-item-card" cdkDrag [formGroup]="group">
+            <div class="drag-header">
+              <div class="drag-handle" cdkDragHandle title="Umsortieren">
+                <ion-icon name="reorder-two-outline"></ion-icon>
+                <span class="item-number">Zutat {{ i + 1 }}</span>
+              </div>
+              <ion-button
+                fill="clear"
+                color="danger"
+                size="small"
+                (click)="removeIngredient(i)"
+                [disabled]="zutatenControls.length <= 1"
+                title="Zutat löschen"
+              >
+                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              </ion-button>
+            </div>
+
+            <div class="ingredient-row">
+              <ion-input
+                label="Menge"
+                labelPlacement="floating"
+                type="number"
+                step="any"
+                min="0"
+                placeholder="250"
+                formControlName="menge"
+              ></ion-input>
+
+              <ion-input
+                label="Einheit"
+                labelPlacement="floating"
+                placeholder="g"
+                formControlName="einheit"
+              ></ion-input>
+
+              <ion-input
+                label="Zutat *"
+                labelPlacement="floating"
+                placeholder="z. B. Mehl"
+                formControlName="name"
+              ></ion-input>
+            </div>
+
+            <!-- Schnell-Auswahl gängiger Einheiten -->
+            <div class="unit-chip-row">
+              @for (u of commonUnits; track u) {
+              <button
+                type="button"
+                class="unit-chip"
+                [class.selected]="group.get('einheit')?.value === u"
+                (click)="setUnit(group, u)"
+              >
+                {{ u }}
+              </button>
+              }
+            </div>
+          </div>
+          }
+        </div>
+
+        <div class="action-row">
+          <ion-button fill="outline" size="small" (click)="addIngredient()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Zutat hinzufügen
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- ABSCHNITT: ZUBEREITUNGSSCHRITTE -->
+    <ion-card class="form-section">
+      <ion-card-header>
+        <ion-card-title>Zubereitungsschritte *</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <div cdkDropList (cdkDropListDropped)="onDropStep($event)" class="cdk-drag-list">
+          @for (group of schritteControls; track group; let i = $index) {
+          <div class="drag-item-card" cdkDrag [formGroup]="group">
+            <div class="drag-header">
+              <div class="drag-handle" cdkDragHandle title="Umsortieren">
+                <ion-icon name="reorder-two-outline"></ion-icon>
+                <span class="item-number">Schritt {{ i + 1 }}</span>
+              </div>
+              <ion-button
+                fill="clear"
+                color="danger"
+                size="small"
+                (click)="removeStep(i)"
+                [disabled]="schritteControls.length <= 1"
+                title="Schritt löschen"
+              >
+                <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+              </ion-button>
+            </div>
+
+            <div class="step-textarea-container">
+              <ion-textarea
+                label="Beschreibung *"
+                labelPlacement="floating"
+                placeholder="Beschreibe diesen Schritt..."
+                formControlName="text"
+                [autoGrow]="true"
+                rows="2"
+              ></ion-textarea>
+            </div>
+          </div>
+          }
+        </div>
+
+        <div class="action-row">
+          <ion-button fill="outline" size="small" (click)="addStep()">
+            <ion-icon slot="start" name="add-outline"></ion-icon>
+            Schritt hinzufügen
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- UNTERE AKTIONEN -->
+    <div class="ion-margin-top ion-padding-bottom">
+      <ion-button expand="block" (click)="onSave()" color="primary">
+        <ion-icon slot="start" name="checkmark-outline"></ion-icon>
+        {{ isEditMode ? 'Änderungen speichern' : 'Rezept speichern' }}
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" color="medium" (click)="onCancel()">Abbrechen</ion-button>
+    </div>
+  </form>
+</ion-content>
