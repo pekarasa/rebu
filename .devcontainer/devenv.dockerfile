@@ -31,23 +31,33 @@ RUN set -e; \
     if [ "$installed" = "1" ]; then update-ca-certificates; fi; \
     rm -rf /tmp/extra-certs
 
-# ---------- Basispakete + JDK 21 ----------
-# openjdk-21-jdk-headless ist in bookworm-backports verfügbar.
-RUN apt-get update \
- && echo "deb http://deb.debian.org/debian bookworm-backports main" > /etc/apt/sources.list.d/backports.list \
+# ---------- Basispakete + JDK 21 (Eclipse Temurin via Adoptium APT-Repo) ----------
+# Debian Bookworm liefert nur openjdk-17; openjdk-21 ist auch in bookworm-backports
+# nicht verfügbar. Deshalb nutzen wir das offizielle Adoptium-APT-Repo für
+# Temurin 21 (LTS). Capacitor 8 verlangt JDK 21.
+RUN set -e \
  && apt-get update \
  && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      -t bookworm-backports openjdk-21-jdk-headless \
       unzip \
       zip \
       wget \
       curl \
       git \
+      gnupg \
       ca-certificates \
       sudo \
-    && rm -rf /var/lib/apt/lists/*
+ && install -d -m 0755 /etc/apt/keyrings \
+ && wget -qO- https://packages.adoptium.net/artifactory/api/gpg/key/public \
+      | gpg --dearmor -o /etc/apt/keyrings/adoptium.gpg \
+ && chmod 0644 /etc/apt/keyrings/adoptium.gpg \
+ && echo "deb [signed-by=/etc/apt/keyrings/adoptium.gpg] https://packages.adoptium.net/artifactory/deb bookworm main" \
+      > /etc/apt/sources.list.d/adoptium.list \
+ && apt-get update \
+ && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      temurin-21-jdk \
+ && rm -rf /var/lib/apt/lists/*
 
-ENV JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+ENV JAVA_HOME=/usr/lib/jvm/temurin-21-jdk-amd64
 
 # ---------- Android SDK ----------
 ENV ANDROID_SDK_ROOT=/opt/android-sdk \
@@ -65,17 +75,25 @@ RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" \
 
 ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${ANDROID_SDK_ROOT}/emulator:${PATH}"
 
-# sdkmanager parst HTTP_PROXY/HTTPS_PROXY selbst und scheitert bei Werten,
-# die er nicht versteht (z.B. leer). Wir übergeben hier bewusst nichts an
-# den sdkmanager; er nutzt die DNS-Auflösung und direkte Verbindung.
-# Falls Daemon-Proxy mit TLS-Interception aktiv ist, nutzt sdkmanager die
-# ENVs transparent, solange der Proxy-Host erreichbar ist.
-RUN yes | sdkmanager --licenses > /dev/null \
- && sdkmanager --install \
+# sdkmanager ist ein Java-Programm und ignoriert HTTP_PROXY/HTTPS_PROXY.
+# Es respektiert nur Java-System-Properties (https.proxyHost/Port). Hinter
+# einem Corporate-Proxy (Zscaler o.ae.) muessen deswegen Build-Args
+# JAVA_PROXY_HOST und JAVA_PROXY_PORT gesetzt werden; sie landen via
+# JAVA_TOOL_OPTIONS in der JVM. Ohne Proxy bleiben beide leer und der
+# Schritt laeuft unveraendert.
+ARG JAVA_PROXY_HOST=""
+ARG JAVA_PROXY_PORT=""
+RUN set -e; \
+    if [ -n "$JAVA_PROXY_HOST" ] && [ -n "$JAVA_PROXY_PORT" ]; then \
+      export JAVA_TOOL_OPTIONS="-Dhttp.proxyHost=${JAVA_PROXY_HOST} -Dhttp.proxyPort=${JAVA_PROXY_PORT} -Dhttps.proxyHost=${JAVA_PROXY_HOST} -Dhttps.proxyPort=${JAVA_PROXY_PORT}"; \
+      echo "sdkmanager: using JAVA_TOOL_OPTIONS=$JAVA_TOOL_OPTIONS"; \
+    fi; \
+    yes | sdkmanager --licenses > /dev/null; \
+    sdkmanager --install \
       "platform-tools" \
       "platforms;android-${ANDROID_PLATFORM_VERSION}" \
-      "build-tools;${ANDROID_BUILD_TOOLS_VERSION}" \
- && chown -R node:node "${ANDROID_SDK_ROOT}"
+      "build-tools;${ANDROID_BUILD_TOOLS_VERSION}"; \
+    chown -R node:node "${ANDROID_SDK_ROOT}"
 
 # ---------- Globale npm-Tools ----------
 # opencode-ai: AI coding agent CLI, muss im Container verfügbar sein, damit
