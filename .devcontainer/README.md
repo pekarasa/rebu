@@ -15,7 +15,7 @@ möglich.
 
 1. VS Code mit "Dev Containers"-Extension öffnen.
 2. `.devcontainer/.env.example` nach `.devcontainer/.env` kopieren und die
-   opencode-Pfade anpassen (siehe Abschnitt *opencode im Container* unten).
+   opencode-Pfade anpassen (siehe Abschnitt _opencode im Container_ unten).
 3. "Reopen in Container" ausführen.
 4. Beim ersten Start wird das Image gebaut (ca. 3 Minuten + Download).
 
@@ -79,6 +79,21 @@ Container-Netz erreichbar ist (DNS/Routing).
 
 Settings → Resources → Proxies. Analog.
 
+### sdkmanager & Proxy
+
+`sdkmanager` ist Java-basiert und ignoriert `HTTP_PROXY`/`HTTPS_PROXY`. Hinter
+einem Corporate-Proxy scheitert der Download der Android-Build-Tools im
+Image-Build sonst mit `Connection refused`. Workaround: in
+`.devcontainer/.env`
+
+```
+JAVA_PROXY_HOST=host.docker.internal   # oder konkrete Proxy-IP
+JAVA_PROXY_PORT=3128
+```
+
+setzen. Die Werte werden als Build-Args in das Image gereicht und beim
+`sdkmanager`-Schritt via `JAVA_TOOL_OPTIONS` an die JVM uebergeben.
+
 ### TLS-Interception / Firmen-CA-Zertifikate
 
 Wenn dein Proxy TLS aufbricht, braucht der Container das Firmen-CA-Zertifikat:
@@ -95,11 +110,11 @@ Node.js nutzt den System-CA-Store nicht automatisch. Falls nötig, in
 
 ## Dateien
 
-| Datei | Zweck |
-|---|---|
-| `devcontainer.json` | VS Code Dev-Container-Konfiguration |
-| `docker-compose.yml` | Service-Definition (bind-mount Workspace etc.) |
-| `devenv.dockerfile` | Image-Build: Node + JDK + Android SDK + CLIs |
-| `post-start.sh` | Läuft bei jedem Container-Start (Permissions, Infos) |
-| `.env.example` | Vorlage für lokale Compose-Env-Variablen (nach `.env` kopieren, gitignored) |
-| `certificates/` | Optionale CA-Zertifikate (Inhalt gitignored) |
+| Datei                | Zweck                                                                       |
+| -------------------- | --------------------------------------------------------------------------- |
+| `devcontainer.json`  | VS Code Dev-Container-Konfiguration                                         |
+| `docker-compose.yml` | Service-Definition (bind-mount Workspace etc.)                              |
+| `devenv.dockerfile`  | Image-Build: Node + JDK + Android SDK + CLIs                                |
+| `post-start.sh`      | Läuft bei jedem Container-Start (Permissions, Infos)                        |
+| `.env.example`       | Vorlage für lokale Compose-Env-Variablen (nach `.env` kopieren, gitignored) |
+| `certificates/`      | Optionale CA-Zertifikate (Inhalt gitignored)                                |

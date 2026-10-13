@@ -3,6 +3,11 @@ services:
     build:
       context: ..
       dockerfile: .devcontainer/devenv.dockerfile
+      args:
+        # Proxy fuer sdkmanager (JVM). Siehe .devcontainer/.env.example.
+        # Leer lassen, wenn kein Corporate-Proxy aktiv ist.
+        JAVA_PROXY_HOST: ${JAVA_PROXY_HOST:-}
+        JAVA_PROXY_PORT: ${JAVA_PROXY_PORT:-}
 
     user: "node"
     command: sleep infinity
