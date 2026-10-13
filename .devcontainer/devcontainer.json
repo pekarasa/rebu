@@ -16,14 +16,14 @@
     "vscode": {
       "extensions": [
         "Angular.ng-template",
-        "Ionic.ionic",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "editorconfig.editorconfig",
         "GitHub.vscode-pull-request-github",
         "GitHub.vscode-github-actions",
         "ms-azuretools.vscode-docker",
-        "redhat.vscode-yaml"
+        "redhat.vscode-yaml",
+        "Webnative.webnative"
       ],
       "settings": {
         "editor.formatOnSave": true,
