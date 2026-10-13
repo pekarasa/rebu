@@ -32,9 +32,9 @@ vi.mock('@capacitor/camera', () => ({
 
 vi.mock('@capacitor/filesystem', () => ({
   Filesystem: {
-    writeFile: vi.fn().mockResolvedValue({ uri: 'file:///mock' }),
-    readFile: vi.fn().mockResolvedValue({ data: 'mockbase64' }),
-    deleteFile: vi.fn().mockResolvedValue(undefined),
+    writeFile: vi.fn(),
+    readFile: vi.fn(),
+    deleteFile: vi.fn(),
   },
   Directory: {
     Data: 'DATA',

@@ -1,35 +1,8 @@
 import { TestBed } from '@angular/core/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PhotoService } from './photo.service';
 import { Camera } from '@capacitor/camera';
 import { Filesystem } from '@capacitor/filesystem';
-
-vi.mock('@capacitor/camera', () => {
-  return {
-    Camera: {
-      getPhoto: vi.fn(),
-    },
-    CameraResultType: {
-      DataUrl: 'dataUrl',
-    },
-    CameraSource: {
-      Prompt: 'prompt',
-    },
-  };
-});
-
-vi.mock('@capacitor/filesystem', () => {
-  return {
-    Filesystem: {
-      writeFile: vi.fn(),
-      readFile: vi.fn(),
-      deleteFile: vi.fn(),
-    },
-    Directory: {
-      Data: 'DATA',
-    },
-  };
-});
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PhotoService } from './photo.service';
 
 describe('PhotoService', () => {
   let service: PhotoService;

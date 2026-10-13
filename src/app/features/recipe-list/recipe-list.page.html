@@ -1,0 +1,142 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-title>Rezepte</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="openSortSelection()" aria-label="Sortierung ändern" title="Sortierung ändern">
+        <ion-icon slot="icon-only" name="swap-vertical-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+
+  <ion-toolbar color="primary" class="search-toolbar">
+    <ion-searchbar
+      [value]="searchTerm"
+      (ionInput)="onSearchChange($event)"
+      placeholder="Rezept oder Zutat suchen..."
+      [debounce]="300"
+      [showClearButton]="'focus'"
+      aria-label="Volltextsuche"
+    ></ion-searchbar>
+  </ion-toolbar>
+
+  <div class="filter-chips-container">
+    <ion-chip
+      [color]="selectedSaison !== 'alle' ? 'warning' : 'medium'"
+      [outline]="selectedSaison === 'alle'"
+      (click)="openSaisonSelection()"
+      class="filter-chip"
+      [attr.aria-label]="saisonFilterLabel"
+    >
+      <ion-icon name="leaf-outline"></ion-icon>
+      <ion-label>{{ saisonFilterLabel }}</ion-label>
+      @if (selectedSaison !== 'alle') {
+      <ion-icon
+        name="close-circle"
+        class="clear-chip-icon"
+        (click)="clearSaisonFilter($event)"
+        aria-label="Saisonfilter entfernen"
+      ></ion-icon>
+      }
+    </ion-chip>
+
+    <ion-chip
+      [color]="selectedKhTag !== null ? 'primary' : 'medium'"
+      [outline]="selectedKhTag === null"
+      (click)="openKhSelection()"
+      class="filter-chip"
+      [attr.aria-label]="khFilterLabel"
+    >
+      <ion-icon name="nutrition-outline"></ion-icon>
+      <ion-label>{{ khFilterLabel }}</ion-label>
+      @if (selectedKhTag !== null) {
+      <ion-icon
+        name="close-circle"
+        class="clear-chip-icon"
+        (click)="clearKhFilter($event)"
+        aria-label="KH-Filter entfernen"
+      ></ion-icon>
+      }
+    </ion-chip>
+
+    <ion-chip
+      color="medium"
+      outline="true"
+      (click)="openSortSelection()"
+      class="filter-chip sort-chip"
+      [attr.aria-label]="'Sortierung: ' + sortOrderLabel"
+    >
+      <ion-icon name="swap-vertical-outline"></ion-icon>
+      <ion-label>{{ sortOrderLabel }}</ion-label>
+    </ion-chip>
+
+    @if (!isDefaultFilter) {
+    <ion-chip
+      color="danger"
+      outline="true"
+      (click)="resetAllFilters()"
+      class="filter-chip reset-chip"
+      aria-label="Alle Filter zurücksetzen"
+    >
+      <ion-icon name="refresh-outline"></ion-icon>
+      <ion-label>Zurücksetzen</ion-label>
+    </ion-chip>
+    }
+  </div>
+
+  @if (isLoading) {
+  <ion-progress-bar type="indeterminate" color="primary"></ion-progress-bar>
+  }
+</ion-header>
+
+<ion-content [fullscreen]="true" class="ion-padding recipe-list-content">
+  <ion-refresher slot="fixed" (ionRefresh)="onRefresh($event)">
+    <ion-refresher-content></ion-refresher-content>
+  </ion-refresher>
+
+  @if (hasLoadedOnce && recipes.length > 0) {
+  <div class="list-meta">
+    <span class="count-text">{{ recipes.length }} {{ recipes.length === 1 ? 'Rezept' : 'Rezepte' }}</span>
+    <span class="sort-hint">Sortiert nach {{ sortOrderLabel }}</span>
+  </div>
+
+  <ion-grid class="recipe-grid">
+    <ion-row>
+      @for (recipe of recipes; track recipe.id) {
+      <ion-col size="12" size-md="6" size-lg="4">
+        <app-recipe-card [recipe]="recipe" (cardClick)="onRecipeSelected($event)" />
+      </ion-col>
+      }
+    </ion-row>
+  </ion-grid>
+  } @if (hasLoadedOnce && recipes.length === 0) {
+  <div class="empty-state">
+    @if (totalRecipeCount === 0 && !searchTerm && selectedSaison === 'alle' && !selectedKhTag) {
+    <div class="empty-icon-wrapper">
+      <ion-icon name="restaurant-outline" class="empty-icon"></ion-icon>
+    </div>
+    <h2 class="empty-title">Noch keine Rezepte vorhanden</h2>
+    <p class="empty-desc">Erfasse dein erstes Rezept und starte dein persönliches Kochbuch.</p>
+    <ion-button routerLink="/recipes/new" color="primary" class="empty-action-btn">
+      <ion-icon slot="start" name="add-outline"></ion-icon>
+      Erstes Rezept erfassen
+    </ion-button>
+    } @else {
+    <div class="empty-icon-wrapper">
+      <ion-icon name="search-outline" class="empty-icon"></ion-icon>
+    </div>
+    <h2 class="empty-title">Keine Rezepte gefunden</h2>
+    <p class="empty-desc">Für die gewählten Such- und Filterkriterien gibt es leider keine Treffer.</p>
+    <ion-button (click)="resetAllFilters()" fill="outline" color="primary" class="empty-action-btn">
+      <ion-icon slot="start" name="refresh-outline"></ion-icon>
+      Filter zurücksetzen
+    </ion-button>
+    }
+  </div>
+  }
+
+  <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab-button routerLink="/recipes/new" aria-label="Neues Rezept hinzufügen">
+      <ion-icon name="add-outline"></ion-icon>
+    </ion-fab-button>
+  </ion-fab>
+</ion-content>
