@@ -7,6 +7,18 @@ export interface ZutatKH {
   prioritaet: 1 | 2;
 }
 
+/** Alle bekannten KH-Tags aus der Spezifikation */
+export const KH_TAGS = [
+  'Pasta',
+  'Reis',
+  'Kartoffeln',
+  'Brot / Teig',
+  'Hülsenfrüchte',
+  'Getreide',
+] as const;
+
+export type KhTagType = (typeof KH_TAGS)[number];
+
 /**
  * Statische KH-Erkennungs-Datenbank.
  * Beim Speichern wird der KH-Lieferant mit der höchsten Priorität (niedrigster Zahl)

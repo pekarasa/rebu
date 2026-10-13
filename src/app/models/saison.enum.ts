@@ -35,3 +35,25 @@ export function getSaisonForMonat(monat: number): Saison {
   if (monat >= 9 && monat <= 11) return Saison.Herbst;
   return Saison.Winter;
 }
+
+/**
+ * Ermittelt den Anzeigenamen der Saison(en) für eine Liste von Monaten.
+ * - Bei 12 Monaten (oder leer): "Ganzjährig"
+ * - Sonst kommaseparierte Liste der beteiligten Saisons, z. B. "Herbst" oder "Sommer, Herbst".
+ */
+export function formatSaisonDisplay(saisonMonate: number[]): string {
+  if (!saisonMonate || saisonMonate.length === 0 || saisonMonate.length === 12) {
+    return 'Ganzjährig';
+  }
+  const seasons = new Set<Saison>();
+  for (const m of saisonMonate) {
+    seasons.add(getSaisonForMonat(m));
+  }
+  const orderedSaisons = [Saison.Fruehling, Saison.Sommer, Saison.Herbst, Saison.Winter].filter(
+    (s) => seasons.has(s),
+  );
+  if (orderedSaisons.length === 0 || orderedSaisons.length === 4) {
+    return 'Ganzjährig';
+  }
+  return orderedSaisons.join(', ');
+}

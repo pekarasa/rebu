@@ -1,0 +1,10 @@
+<span
+  class="app-badge"
+  [class]="'badge-color-' + color + ' badge-variant-' + variant"
+  [attr.aria-label]="ariaLabel || label"
+>
+  @if (icon) {
+    <ion-icon [name]="icon" class="badge-icon" aria-hidden="true"></ion-icon>
+  }
+  <span class="badge-label">{{ label }}</span>
+</span>

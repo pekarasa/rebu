@@ -1,0 +1,84 @@
+.app-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  vertical-align: middle;
+
+  .badge-icon {
+    font-size: 0.875rem;
+    flex-shrink: 0;
+  }
+
+  .badge-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &.badge-variant-subtle {
+    &.badge-color-primary {
+      background: rgba(var(--ion-color-primary-rgb, 56, 128, 255), 0.12);
+      color: var(--ion-color-primary, #3880ff);
+    }
+    &.badge-color-secondary {
+      background: rgba(var(--ion-color-secondary-rgb, 61, 194, 255), 0.12);
+      color: var(--ion-color-secondary, #3dc2ff);
+    }
+    &.badge-color-tertiary {
+      background: rgba(var(--ion-color-tertiary-rgb, 82, 96, 149), 0.12);
+      color: var(--ion-color-tertiary, #5260ff);
+    }
+    &.badge-color-success {
+      background: rgba(var(--ion-color-success-rgb, 45, 211, 111), 0.14);
+      color: var(--ion-color-success-shade, #28ba62);
+    }
+    &.badge-color-warning {
+      background: rgba(var(--ion-color-warning-rgb, 255, 196, 9), 0.18);
+      color: #9a6200;
+    }
+    &.badge-color-danger {
+      background: rgba(var(--ion-color-danger-rgb, 235, 68, 90), 0.14);
+      color: var(--ion-color-danger, #eb445a);
+    }
+    &.badge-color-medium {
+      background: rgba(var(--ion-color-medium-rgb, 146, 148, 156), 0.15);
+      color: var(--ion-color-medium-shade, #555);
+    }
+  }
+
+  &.badge-variant-solid {
+    &.badge-color-primary {
+      background: var(--ion-color-primary, #3880ff);
+      color: var(--ion-color-primary-contrast, #fff);
+    }
+    &.badge-color-secondary {
+      background: var(--ion-color-secondary, #3dc2ff);
+      color: var(--ion-color-secondary-contrast, #fff);
+    }
+    &.badge-color-tertiary {
+      background: var(--ion-color-tertiary, #5260ff);
+      color: var(--ion-color-tertiary-contrast, #fff);
+    }
+    &.badge-color-success {
+      background: var(--ion-color-success, #2dd36f);
+      color: var(--ion-color-success-contrast, #fff);
+    }
+    &.badge-color-warning {
+      background: var(--ion-color-warning, #ffc409);
+      color: var(--ion-color-warning-contrast, #000);
+    }
+    &.badge-color-danger {
+      background: var(--ion-color-danger, #eb445a);
+      color: var(--ion-color-danger-contrast, #fff);
+    }
+    &.badge-color-medium {
+      background: var(--ion-color-medium, #92949c);
+      color: var(--ion-color-medium-contrast, #fff);
+    }
+  }
+}

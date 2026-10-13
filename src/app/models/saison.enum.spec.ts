@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { getCurrentSaison, getMonateForSaison, getSaisonForMonat, Saison } from './saison.enum';
+import {
+  formatSaisonDisplay,
+  getCurrentSaison,
+  getMonateForSaison,
+  getSaisonForMonat,
+  Saison,
+} from './saison.enum';
 
 describe('Saison-Enum Hilfsfunktionen', () => {
   describe('getMonateForSaison', () => {
@@ -40,6 +46,25 @@ describe('Saison-Enum Hilfsfunktionen', () => {
     it('gibt eine gültige Saison zurück', () => {
       const result = getCurrentSaison();
       expect(Object.values(Saison)).toContain(result);
+    });
+  });
+
+  describe('formatSaisonDisplay', () => {
+    it('liefert "Ganzjährig" für leere Liste oder alle 12 Monate', () => {
+      expect(formatSaisonDisplay([])).toBe('Ganzjährig');
+      expect(formatSaisonDisplay([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])).toBe('Ganzjährig');
+    });
+
+    it('liefert "Sommer" für Sommermonate', () => {
+      expect(formatSaisonDisplay([6, 7, 8])).toBe('Sommer');
+    });
+
+    it('liefert "Herbst" für Herbstmonate', () => {
+      expect(formatSaisonDisplay([9, 10, 11])).toBe('Herbst');
+    });
+
+    it('kombiniert mehrere Saisons in chronologischer Reihenfolge', () => {
+      expect(formatSaisonDisplay([8, 9])).toBe('Sommer, Herbst');
     });
   });
 });
