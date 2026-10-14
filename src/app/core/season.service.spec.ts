@@ -61,4 +61,42 @@ describe('SeasonService', () => {
     const noMatch = service.findSaisonForIngredient('Wasser');
     expect(noMatch).toBeNull();
   });
+
+  it('schließt verarbeitete Vorratszutaten wie Essig, Öl, Kerne und Marmelade aus', () => {
+    expect(service.findSaisonForIngredient('1 EL Apfelessig')).toBeNull();
+    expect(service.findSaisonForIngredient('2 EL Kürbiskernöl')).toBeNull();
+    expect(service.findSaisonForIngredient('50g Kürbiskerne geröstet')).toBeNull();
+    expect(service.findSaisonForIngredient('100g Erdbeermarmelade')).toBeNull();
+    expect(service.findSaisonForIngredient('200ml Apfelsaft')).toBeNull();
+    expect(service.findSaisonForIngredient('Walnussöl')).toBeNull();
+  });
+
+  it('erkennt frische Zutat auch wenn Vorratsbestandteil in derselben Zeile vorkommt', () => {
+    const match = service.findSaisonForIngredient('2 Äpfel und 1 EL Apfelessig');
+    expect(match).not.toBeNull();
+    expect(match?.name).toBe('äpfel');
+  });
+
+  it('erkennt regionale Begriffe und Schweizer Synonyme korrekt', () => {
+    expect(service.findSaisonForIngredient('3 Rüebli geschält')?.name).toBe('rüebli');
+    expect(service.findSaisonForIngredient('2 Randen gekocht')?.name).toBe('randen');
+    expect(service.findSaisonForIngredient('100g Nüsslisalat')?.name).toBe('nüsslisalat');
+    expect(service.findSaisonForIngredient('1 Wirz gehobelt')?.name).toBe('wirz');
+    expect(service.findSaisonForIngredient('200g Marroni heiß')?.name).toBe('marroni');
+  });
+
+  it('erkennt Singular- und Pluralformen zuverlässig', () => {
+    expect(service.findSaisonForIngredient('1 Karotte')).not.toBeNull();
+    expect(service.findSaisonForIngredient('3 Karotten')).not.toBeNull();
+    expect(service.findSaisonForIngredient('1 Erbse')).not.toBeNull();
+    expect(service.findSaisonForIngredient('200g Erbsen')).not.toBeNull();
+  });
+
+  it('prüft isIngredientSeasonal und getIngredientSaisonDisplay', () => {
+    expect(service.isIngredientSeasonal('Spargel')).toBe(true);
+    expect(service.isIngredientSeasonal('Wasser')).toBe(false);
+
+    expect(service.getIngredientSaisonDisplay('Frischer Spargel')).toContain('Frühling');
+    expect(service.getIngredientSaisonDisplay('Salz')).toBeNull();
+  });
 });

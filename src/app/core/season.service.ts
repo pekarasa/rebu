@@ -1,7 +1,30 @@
 import { Injectable } from '@angular/core';
 import { ZUTAT_SAISON_DB, ZutatSaison } from '../data/zutat-saison.data';
+import { formatSaisonDisplay } from '../models/saison.enum';
 
 const ALL_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+/**
+ * Ausgeschlossene Suffixe für verarbeitete Vorratszutaten, die nicht als
+ * frische saisonale Zutat gewertet werden sollen (z. B. Apfelessig, Kürbiskerne, Walnussöl).
+ */
+const EXCLUDED_PANTRY_SUFFIXES = [
+  'essig',
+  'öl',
+  'oel',
+  'kern',
+  'kerne',
+  'kernöl',
+  'kernoel',
+  'saft',
+  'sirup',
+  'marmelade',
+  'konfitüre',
+  'konfituere',
+  'gelee',
+  'mus',
+  'pulver',
+];
 
 @Injectable({ providedIn: 'root' })
 export class SeasonService {
@@ -9,17 +32,50 @@ export class SeasonService {
 
   /**
    * Findet einen Eintrag in der Saisondatenbank anhand des Namens der Zutat.
-   * Gibt den Eintrag zurück oder null, falls die Zutat als ganzjährig gilt.
+   * Gibt den Eintrag zurück oder null, falls die Zutat als ganzjährig gilt oder
+   * es sich um eine verarbeitete Vorratszutat handelt (z. B. Apfelessig, Kürbiskernöl).
    */
   findSaisonForIngredient(ingredientName: string): ZutatSaison | null {
     if (!ingredientName) return null;
     const lower = ingredientName.toLowerCase().trim();
+    if (!lower) return null;
+
     for (const item of this.sortedDb) {
-      if (lower.includes(item.name)) {
-        return item;
+      let startIndex = 0;
+      let foundIndex = lower.indexOf(item.name, startIndex);
+
+      while (foundIndex !== -1) {
+        const surroundingWord = this.getSurroundingWord(lower, foundIndex, item.name.length);
+        const isPantryExclusion = EXCLUDED_PANTRY_SUFFIXES.some((suffix) =>
+          surroundingWord.endsWith(suffix),
+        );
+
+        if (!isPantryExclusion) {
+          return item;
+        }
+
+        startIndex = foundIndex + item.name.length;
+        foundIndex = lower.indexOf(item.name, startIndex);
       }
     }
     return null;
+  }
+
+  /**
+   * Prüft, ob eine einzelne Zutat saisonal erfasst ist.
+   */
+  isIngredientSeasonal(ingredientName: string): boolean {
+    return this.findSaisonForIngredient(ingredientName) !== null;
+  }
+
+  /**
+   * Gibt den formatierten Saison-Anzeigenamen (z. B. "Sommer" oder "Herbst") für eine Zutat zurück,
+   * oder null wenn die Zutat ganzjährig/nicht saisonal ist.
+   */
+  getIngredientSaisonDisplay(ingredientName: string): string | null {
+    const item = this.findSaisonForIngredient(ingredientName);
+    if (!item) return null;
+    return formatSaisonDisplay(item.monate);
   }
 
   /**
@@ -61,5 +117,20 @@ export class SeasonService {
    */
   isAllYear(saisonMonate: number[]): boolean {
     return ALL_MONTHS.every((m) => saisonMonate.includes(m));
+  }
+
+  /**
+   * Ermittelt das vollständige Wort um einen gefundenen Substring herum.
+   */
+  private getSurroundingWord(text: string, matchIndex: number, matchLength: number): string {
+    let start = matchIndex;
+    while (start > 0 && /[a-zäöüß]/i.test(text[start - 1])) {
+      start--;
+    }
+    let end = matchIndex + matchLength;
+    while (end < text.length && /[a-zäöüß]/i.test(text[end])) {
+      end++;
+    }
+    return text.substring(start, end);
   }
 }
