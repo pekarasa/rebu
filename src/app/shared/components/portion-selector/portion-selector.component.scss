@@ -1,0 +1,66 @@
+.portion-selector {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-step-50, #f4f5f8);
+  border: 1px solid var(--ion-color-step-200, #e0e0e0);
+  border-radius: 24px;
+  padding: 2px 6px;
+  user-select: none;
+}
+
+.selector-btn {
+  --padding-start: 6px;
+  --padding-end: 6px;
+  --border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  margin: 0;
+  color: var(--ion-color-primary, #3880ff);
+
+  ion-icon {
+    font-size: 1.25rem;
+  }
+
+  &[disabled] {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+}
+
+.portion-number-input {
+  width: 2.5rem;
+  padding: 4px 2px;
+  background: transparent;
+  border: none;
+  border-bottom: 1.5px dashed var(--ion-color-step-300, #b0b0b0);
+  text-align: center;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ion-text-color, #000);
+  outline: none;
+
+  -moz-appearance: textfield;
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  &:focus {
+    border-bottom: 2px solid var(--ion-color-primary, #3880ff);
+  }
+}
+
+.portion-unit {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--ion-color-step-600, #666);
+}

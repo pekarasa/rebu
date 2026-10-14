@@ -1,0 +1,39 @@
+<div class="portion-selector" role="group" aria-label="Portionsauswahl">
+  <ion-button
+    fill="clear"
+    size="small"
+    class="selector-btn decrease-btn"
+    (click)="decrease()"
+    [disabled]="portion <= min"
+    aria-label="Portionen verringern"
+  >
+    <ion-icon slot="icon-only" name="remove-outline" aria-hidden="true"></ion-icon>
+  </ion-button>
+
+  <div class="input-wrapper">
+    <input
+      #numberInput
+      type="number"
+      class="portion-number-input"
+      [value]="portion"
+      [min]="min"
+      [max]="max"
+      (change)="onInputChange($event)"
+      aria-label="Portionsanzahl"
+    />
+    @if (showLabel) {
+      <span class="portion-unit">{{ portion === 1 ? 'Portion' : 'Portionen' }}</span>
+    }
+  </div>
+
+  <ion-button
+    fill="clear"
+    size="small"
+    class="selector-btn increase-btn"
+    (click)="increase()"
+    [disabled]="portion >= max"
+    aria-label="Portionen erhöhen"
+  >
+    <ion-icon slot="icon-only" name="add-outline" aria-hidden="true"></ion-icon>
+  </ion-button>
+</div>
