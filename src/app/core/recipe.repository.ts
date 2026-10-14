@@ -140,8 +140,8 @@ export class RecipeRepository {
       if (filter.saisonMonate?.length) {
         const monate: number[] = JSON.parse(row['saisonMonate'] ?? '[]');
         // Rezept muss saisonal in MINDESTENS EINEM der gesuchten Monate sein,
-        // ODER keine saisonalen Zutaten haben (leeres Array = ganzjährig)
-        const isGanzjaehrig = monate.length === 0;
+        // ODER keine saisonalen Zutaten haben (leeres Array oder alle 12 Monate = ganzjährig)
+        const isGanzjaehrig = monate.length === 0 || monate.length === 12;
         const matchesSaison = isGanzjaehrig || filter.saisonMonate.some((m) => monate.includes(m));
         if (!matchesSaison) continue;
       }

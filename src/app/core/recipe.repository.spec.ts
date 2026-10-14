@@ -344,8 +344,14 @@ describe('RecipeRepository', () => {
       await repo.create({ ...baseRecipe(), titel: 'Sommersalat' }, [6, 7, 8], null);
       // Herbst-Rezept (September–November)
       await repo.create({ ...baseRecipe(), titel: 'Kürbissuppe' }, [9, 10, 11], null);
-      // Ganzjähriges Rezept
+      // Ganzjähriges Rezept mit leerem Array
       await repo.create({ ...baseRecipe(), titel: 'Rührei' }, [], null);
+      // Ganzjähriges Rezept mit allen 12 Monaten
+      await repo.create(
+        { ...baseRecipe(), titel: 'Pfannkuchen' },
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        null,
+      );
 
       // Filter nach Herbst (Monate 9, 10, 11)
       const herbstRezepte = await repo.findAll({ saisonMonate: [9, 10, 11] });
@@ -353,6 +359,7 @@ describe('RecipeRepository', () => {
 
       expect(titles).toContain('Kürbissuppe');
       expect(titles).toContain('Rührei');
+      expect(titles).toContain('Pfannkuchen');
       expect(titles).not.toContain('Sommersalat');
     });
 
