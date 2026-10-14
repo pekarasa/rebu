@@ -216,6 +216,12 @@
       font-size: 1.05rem;
       color: var(--ion-text-color, #111);
       flex-grow: 1;
+
+      .seasonal-ingredient-icon {
+        font-size: 1.05rem;
+        margin-left: 6px;
+        vertical-align: -2px;
+      }
     }
   }
 }

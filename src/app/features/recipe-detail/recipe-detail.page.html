@@ -126,7 +126,17 @@
             <span class="ingredient-unit">{{ zutat.einheit }}</span>
             }
           </span>
-          <span class="ingredient-name">{{ zutat.name }}</span>
+          <span class="ingredient-name">
+            {{ zutat.name }} @if (isIngredientSeasonal(zutat.name)) {
+            <ion-icon
+              name="leaf-outline"
+              class="seasonal-ingredient-icon"
+              color="success"
+              [title]="'Saisonal (' + getIngredientSeasonBadge(zutat.name) + ')'"
+              [attr.aria-label]="'Saisonale Zutat: ' + getIngredientSeasonBadge(zutat.name)"
+            ></ion-icon>
+            }
+          </span>
         </div>
         } }
       </div>

@@ -38,6 +38,7 @@ import { KeepAwakeService } from '../../core/keep-awake.service';
 import { PhotoService } from '../../core/photo.service';
 import { PortionScalingService } from '../../core/portion-scaling.service';
 import { RecipeRepository } from '../../core/recipe.repository';
+import { SeasonService } from '../../core/season.service';
 import { Ingredient } from '../../models/ingredient.model';
 import { Recipe } from '../../models/recipe.model';
 import { formatSaisonDisplay } from '../../models/saison.enum';
@@ -72,6 +73,7 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
   private photoService = inject(PhotoService);
   private portionScaling = inject(PortionScalingService);
   private keepAwakeService = inject(KeepAwakeService);
+  private seasonService = inject(SeasonService);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
   private cdr = inject(ChangeDetectorRef);
@@ -195,6 +197,14 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
       this.recipe.portionen,
       this.currentPortions,
     );
+  }
+
+  isIngredientSeasonal(name: string): boolean {
+    return this.seasonService.isIngredientSeasonal(name);
+  }
+
+  getIngredientSeasonBadge(name: string): string | null {
+    return this.seasonService.getIngredientSaisonDisplay(name);
   }
 
   get completedStepsCount(): number {

@@ -77,6 +77,14 @@ describe('RecipeDetailPage', () => {
         einheit: '',
         name: 'Salz und Pfeffer',
       },
+      {
+        id: 'z4',
+        rezeptId: 'r1',
+        reihenfolge: 3,
+        menge: 200,
+        einheit: 'g',
+        name: 'Frische Tomaten',
+      },
     ],
     schritte: [
       {
@@ -220,6 +228,19 @@ describe('RecipeDetailPage', () => {
       expect(component.formatAmount(400)).toBe('400');
       expect(component.formatAmount(1.5)).toBe('1,5');
       expect(component.formatAmount(null)).toBe('');
+    });
+
+    it('erkennt saisonale Zutaten und stellt visuelle Hinweise bereit', () => {
+      fixture.detectChanges();
+
+      expect(component.isIngredientSeasonal('Frische Tomaten')).toBe(true);
+      expect(component.getIngredientSeasonBadge('Frische Tomaten')).toContain('Sommer');
+
+      expect(component.isIngredientSeasonal('Hackfleisch')).toBe(false);
+      expect(component.getIngredientSeasonBadge('Hackfleisch')).toBeNull();
+
+      const seasonalIcons = fixture.nativeElement.querySelectorAll('.seasonal-ingredient-icon');
+      expect(seasonalIcons.length).toBeGreaterThanOrEqual(1);
     });
   });
 
