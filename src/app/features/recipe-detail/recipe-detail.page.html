@@ -1,0 +1,211 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/recipes" text="Zurück"></ion-back-button>
+    </ion-buttons>
+
+    <ion-title class="header-title">{{ recipe?.titel || 'Rezept' }}</ion-title>
+
+    @if (recipe) {
+    <ion-buttons slot="end">
+      <ion-button (click)="openShare()" aria-label="Rezept teilen">
+        <ion-icon slot="icon-only" name="share-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="editRecipe()" aria-label="Rezept bearbeiten">
+        <ion-icon slot="icon-only" name="create-outline"></ion-icon>
+      </ion-button>
+      <ion-button (click)="confirmDelete()" color="danger" aria-label="Rezept löschen">
+        <ion-icon slot="icon-only" name="trash-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+    }
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  @if (isLoading) {
+  <ion-progress-bar type="indeterminate" color="primary"></ion-progress-bar>
+  <div class="loading-container">
+    <p>Rezept wird geladen...</p>
+  </div>
+  } @else if (loadError) {
+  <div class="error-container">
+    <ion-icon name="restaurant-outline" class="error-icon" aria-hidden="true"></ion-icon>
+    <h2>Nicht gefunden</h2>
+    <p>{{ loadError }}</p>
+    <ion-button fill="outline" routerLink="/recipes">Zur Rezeptliste</ion-button>
+  </div>
+  } @else if (recipe) {
+  <!-- 1. KOPFBEREICH: FOTO, TITEL, BADGES, ZEITAUFWAND -->
+  <div class="hero-image-wrapper">
+    @if (displayPhotoUrl) {
+    <img [src]="displayPhotoUrl" [alt]="'Foto von ' + recipe.titel" class="hero-image" loading="eager" />
+    } @else {
+    <div class="hero-placeholder" aria-hidden="true">
+      <ion-icon name="restaurant-outline" class="placeholder-icon"></ion-icon>
+    </div>
+    }
+  </div>
+
+  <div class="detail-container">
+    <h1 class="recipe-title">{{ recipe.titel }}</h1>
+
+    <!-- Badges -->
+    <div class="badges-row">
+      <app-badge
+        [label]="saisonLabel"
+        [color]="saisonColor"
+        icon="leaf-outline"
+        [ariaLabel]="'Saison: ' + saisonLabel"
+      />
+
+      @if (recipe.khTag) {
+      <app-badge
+        [label]="recipe.khTag"
+        color="primary"
+        icon="nutrition-outline"
+        [ariaLabel]="'Kohlenhydrat: ' + recipe.khTag"
+      />
+      } @if (recipe.kategorie) {
+      <app-badge
+        [label]="recipe.kategorie"
+        color="secondary"
+        icon="bookmark-outline"
+        [ariaLabel]="'Kategorie: ' + recipe.kategorie"
+      />
+      }
+    </div>
+
+    <!-- Zeitaufwand -->
+    @if (totalMinutes > 0) {
+    <div class="time-chips-container" aria-label="Zubereitungszeiten">
+      @if (recipe.zeitVorbereitung && recipe.zeitVorbereitung > 0) {
+      <div class="time-chip">
+        <ion-icon name="time-outline" aria-hidden="true"></ion-icon>
+        <span>Vorbereitung: {{ recipe.zeitVorbereitung }} Min.</span>
+      </div>
+      } @if (recipe.zeitKochen && recipe.zeitKochen > 0) {
+      <div class="time-chip">
+        <ion-icon name="flame-outline" aria-hidden="true"></ion-icon>
+        <span>Kochen: {{ recipe.zeitKochen }} Min.</span>
+      </div>
+      }
+
+      <div class="time-chip total">
+        <ion-icon name="hourglass-outline" aria-hidden="true"></ion-icon>
+        <span><strong>Gesamt: {{ totalMinutes }} Min.</strong></span>
+      </div>
+    </div>
+    }
+
+    <!-- Notizen -->
+    @if (recipe.notizen?.trim()) {
+    <div class="notes-box">
+      <ion-icon name="information-circle-outline" class="notes-icon" aria-hidden="true"></ion-icon>
+      <div class="notes-content">
+        <strong>Hinweis:</strong>
+        <p>{{ recipe.notizen }}</p>
+      </div>
+    </div>
+    }
+
+    <!-- 2. & 3. PORTIONSSELEKTOR & ZUTATENLISTE -->
+    <section class="section-container ingredients-section" aria-labelledby="ingredients-heading">
+      <div class="section-header">
+        <h2 id="ingredients-heading">Zutaten</h2>
+        <app-portion-selector [portion]="currentPortions" (portionChange)="onPortionsChange($event)" />
+      </div>
+
+      <div class="ingredients-list">
+        @if (scaledIngredients.length === 0) {
+        <p class="empty-hint">Keine Zutaten angegeben.</p>
+        } @else { @for (zutat of scaledIngredients; track zutat.id || $index) {
+        <div class="ingredient-item">
+          <span class="ingredient-amount">
+            {{ formatAmount(zutat.menge) }} @if (zutat.einheit) {
+            <span class="ingredient-unit">{{ zutat.einheit }}</span>
+            }
+          </span>
+          <span class="ingredient-name">{{ zutat.name }}</span>
+        </div>
+        } }
+      </div>
+    </section>
+
+    <!-- 4. ZUBEREITUNGSSCHRITTE (NACHKOCHEN) -->
+    <section class="section-container steps-section" aria-labelledby="steps-heading">
+      <div class="section-header steps-header-flex">
+        <div>
+          <h2 id="steps-heading">Zubereitung</h2>
+          @if (totalStepsCount > 0) {
+          <span class="progress-subtext">{{ completedStepsCount }} von {{ totalStepsCount }} Schritten erledigt</span>
+          }
+        </div>
+
+        @if (checkedStepIds.size > 0) {
+        <ion-button fill="clear" size="small" color="medium" class="reset-btn-small" (click)="resetCooking()">
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Häkchen zurücksetzen
+        </ion-button>
+        }
+      </div>
+
+      @if (totalStepsCount > 0) {
+      <ion-progress-bar
+        class="cooking-progress-bar"
+        [value]="cookingProgress"
+        color="success"
+        [attr.aria-valuenow]="cookingProgressPercent"
+      ></ion-progress-bar>
+      }
+
+      <div class="steps-list">
+        @if (totalStepsCount === 0) {
+        <p class="empty-hint">Keine Zubereitungsschritte angegeben.</p>
+        } @else { @for (schritt of recipe.schritte; track schritt.id || $index) {
+        <div
+          class="step-card"
+          [class.completed]="isStepCompleted(schritt.id)"
+          (click)="toggleStep(schritt.id)"
+          role="checkbox"
+          [attr.aria-checked]="isStepCompleted(schritt.id)"
+          tabindex="0"
+        >
+          <div class="step-card-header">
+            <div class="step-number-badge">{{ schritt.reihenfolge + 1 }}</div>
+            <div class="step-check-indicator">
+              <ion-icon
+                [name]="isStepCompleted(schritt.id) ? 'checkmark-circle' : 'ellipse-outline'"
+                [color]="isStepCompleted(schritt.id) ? 'success' : 'medium'"
+                aria-hidden="true"
+              ></ion-icon>
+            </div>
+          </div>
+
+          <div class="step-card-content">
+            <p class="step-text">{{ schritt.text }}</p>
+          </div>
+        </div>
+        } }
+      </div>
+
+      <!-- KOCHEN BEENDEN BUTTON -->
+      @if (totalStepsCount > 0) {
+      <div class="cooking-finish-section">
+        <ion-button
+          expand="block"
+          fill="outline"
+          color="medium"
+          class="finish-cooking-button"
+          [disabled]="checkedStepIds.size === 0"
+          (click)="resetCooking()"
+        >
+          <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          Kochen beenden
+        </ion-button>
+      </div>
+      }
+    </section>
+  </div>
+  }
+</ion-content>
