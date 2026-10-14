@@ -172,7 +172,7 @@
           tabindex="0"
         >
           <div class="step-card-header">
-            <div class="step-number-badge">{{ schritt.reihenfolge + 1 }}</div>
+            <div class="step-number-badge">{{ $index + 1 }}</div>
             <div class="step-check-indicator">
               <ion-icon
                 [name]="isStepCompleted(schritt.id) ? 'checkmark-circle' : 'ellipse-outline'"

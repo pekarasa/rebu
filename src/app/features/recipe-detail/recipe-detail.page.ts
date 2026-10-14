@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import {
   AlertController,
@@ -74,6 +74,7 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
   private keepAwakeService = inject(KeepAwakeService);
   private alertCtrl = inject(AlertController);
   private toastCtrl = inject(ToastController);
+  private cdr = inject(ChangeDetectorRef);
 
   recipe: Recipe | null = null;
   displayPhotoUrl: string | null = null;
@@ -162,6 +163,7 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
       this.loadError = 'Fehler beim Laden des Rezepts.';
     } finally {
       this.isLoading = false;
+      this.cdr.markForCheck();
     }
   }
 
@@ -220,6 +222,7 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
   onPortionsChange(newPortions: number): void {
     if (newPortions > 0) {
       this.currentPortions = newPortions;
+      this.cdr.markForCheck();
     }
   }
 
@@ -237,12 +240,14 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
     } else {
       this.checkedStepIds.add(stepId);
     }
+    this.cdr.markForCheck();
   }
 
   async resetCooking(): Promise<void> {
     if (this.checkedStepIds.size === 0) return;
 
     this.checkedStepIds.clear();
+    this.cdr.markForCheck();
     const toast = await this.toastCtrl.create({
       message: 'Kochen beendet: Alle Schritte zurückgesetzt.',
       duration: 2000,
