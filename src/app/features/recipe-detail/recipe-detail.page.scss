@@ -61,14 +61,14 @@
 .detail-container {
   max-width: 768px;
   margin: 0 auto;
-  padding: 1.25rem 1rem 3rem 1rem;
+  padding: 1.25rem 1rem 3rem;
 }
 
 .recipe-title {
   font-size: 1.85rem;
   font-weight: 700;
   line-height: 1.25;
-  margin: 0 0 0.85rem 0;
+  margin: 0 0 0.85rem;
   color: var(--ion-text-color, #000);
 }
 
@@ -274,17 +274,14 @@
     }
   }
 
-  .step-card-content {
-    .step-text {
-      margin: 0;
-      font-size: 1.15rem;
-      line-height: 1.55;
-      color: var(--ion-text-color, #1a1a1a);
-      word-break: break-word;
-    }
+  .step-card-content .step-text {
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1.55;
+    color: var(--ion-text-color, #1a1a1a);
+    word-break: break-word;
   }
 
-  /* Abgehakter Zustand: Visuelles Durchstreichen, bleibt sichtbar */
   &.completed {
     background: var(--ion-color-step-50, #f8f9fa);
     border-color: var(--ion-color-success, #2dd36f);
@@ -294,7 +291,7 @@
       background: var(--ion-color-success, #2dd36f);
     }
 
-    .step-text {
+    .step-card-content .step-text {
       text-decoration: line-through;
       color: var(--ion-color-step-500, #777);
     }
