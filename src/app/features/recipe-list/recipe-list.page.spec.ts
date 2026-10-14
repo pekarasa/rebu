@@ -157,12 +157,42 @@ describe('RecipeListPage', () => {
     await component.clearSaisonFilter();
 
     expect(component.selectedSaison).toBe('alle');
+    expect(component.saisonFilterLabel).toBe('Saison: Alle');
     expect(mockFilterPrefs.saveFilterState).toHaveBeenCalledWith({ saison: 'alle' });
     expect(mockRecipeRepo.findAll).toHaveBeenCalledWith(
       expect.not.objectContaining({
         saisonMonate: expect.anything(),
       }),
     );
+  });
+
+  it('erlaubt Kombination von Saisonfilter, Suche und KH-Tag', async () => {
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    component.searchTerm = 'Auflauf';
+    component.selectedSaison = Saison.Herbst;
+    component.selectedKhTag = 'Kartoffeln';
+
+    await component.loadRecipes();
+
+    expect(mockRecipeRepo.findAll).toHaveBeenCalledWith({
+      suche: 'Auflauf',
+      saisonMonate: [9, 10, 11],
+      khTag: 'Kartoffeln',
+      sortierung: 'alphabetisch',
+    });
+  });
+
+  it('stoppt Event-Propagation beim Entfernen des Saisonfilters via Chip-Icon', async () => {
+    const mockEvent = {
+      stopPropagation: vi.fn(),
+    } as unknown as Event;
+
+    await component.clearSaisonFilter(mockEvent);
+
+    expect(mockEvent.stopPropagation).toHaveBeenCalled();
+    expect(component.selectedSaison).toBe('alle');
   });
 
   it('setzt und entfernt KH-Filter', async () => {
