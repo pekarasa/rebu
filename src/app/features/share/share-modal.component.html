@@ -1,0 +1,160 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>Rezept teilen</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="dismiss()" aria-label="Schließen">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding share-content">
+  <!-- Rezept-Kopfzeile -->
+  <div class="recipe-summary">
+    <div class="recipe-icon">
+      <ion-icon name="restaurant-outline" aria-hidden="true"></ion-icon>
+    </div>
+    <div class="recipe-meta">
+      <h2 class="recipe-title">{{ recipe.titel }}</h2>
+      <p class="recipe-sub">{{ effectivePortions }} Portionen</p>
+    </div>
+  </div>
+
+  <p class="section-hint">Wähle ein Format zum Teilen oder Exportieren:</p>
+
+  <div class="format-cards-grid">
+    <!-- 1. App-zu-App Link -->
+    <ion-card class="format-card" data-testid="share-link-card">
+      <ion-card-header>
+        <div class="card-icon-title">
+          <ion-icon name="link-outline" color="primary" class="format-icon"></ion-icon>
+          <div class="card-text">
+            <ion-card-title>Link (App-zu-App)</ion-card-title>
+            <ion-card-subtitle>Für Rebu & Web-Vorschau</ion-card-subtitle>
+          </div>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p class="format-desc">
+          Enthält alle Rezeptdaten direkt im Link. Der Empfänger kann das Rezept direkt öffnen oder importieren.
+        </p>
+        <div class="actions-row">
+          <ion-button expand="block" (click)="shareLink()" [disabled]="isSharing" class="primary-action-btn">
+            <ion-icon slot="start" name="share-outline"></ion-icon>
+            Link teilen
+          </ion-button>
+          <ion-button fill="outline" (click)="copyLink()" [disabled]="isSharing" aria-label="Link kopieren">
+            <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- 2. Text-Export -->
+    <ion-card class="format-card" data-testid="share-text-card">
+      <ion-card-header>
+        <div class="card-icon-title">
+          <ion-icon name="document-text-outline" color="secondary" class="format-icon"></ion-icon>
+          <div class="card-text">
+            <ion-card-title>Text</ion-card-title>
+            <ion-card-subtitle>WhatsApp, SMS, E-Mail & Notizen</ion-card-subtitle>
+          </div>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p class="format-desc">Formatierter Klartext mit skalierten Zutaten und Zubereitungsschritten.</p>
+        <div class="actions-row">
+          <ion-button
+            expand="block"
+            color="secondary"
+            (click)="shareText()"
+            [disabled]="isSharing"
+            class="primary-action-btn"
+          >
+            <ion-icon slot="start" name="share-outline"></ion-icon>
+            Text teilen
+          </ion-button>
+          <ion-button
+            fill="outline"
+            color="secondary"
+            (click)="copyText()"
+            [disabled]="isSharing"
+            aria-label="Text kopieren"
+          >
+            <ion-icon slot="icon-only" name="copy-outline"></ion-icon>
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- 3. JSON-Datei -->
+    <ion-card class="format-card" data-testid="share-json-card">
+      <ion-card-header>
+        <div class="card-icon-title">
+          <ion-icon name="code-download-outline" color="tertiary" class="format-icon"></ion-icon>
+          <div class="card-text">
+            <ion-card-title>JSON-Datei</ion-card-title>
+            <ion-card-subtitle>{{ exportFileName }}</ion-card-subtitle>
+          </div>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p class="format-desc">
+          Exportiert das Rezept als
+          <code>.rezept.json</code>
+          -Datei für AirDrop, Dateien oder Backups.
+        </p>
+
+        @if (recipe.fotoPath) {
+          <ion-item lines="none" class="photo-toggle-item">
+            <ion-label>Foto einbetten</ion-label>
+            <ion-toggle [(ngModel)]="includePhotoInJson" slot="end"></ion-toggle>
+          </ion-item>
+        }
+
+        <div class="actions-row">
+          <ion-button
+            expand="block"
+            color="tertiary"
+            (click)="shareJson()"
+            [disabled]="isSharing"
+            class="primary-action-btn"
+          >
+            <ion-icon slot="start" name="code-download-outline"></ion-icon>
+            Datei exportieren
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+
+    <!-- 4. Drucken / PDF -->
+    <ion-card class="format-card" data-testid="share-print-card">
+      <ion-card-header>
+        <div class="card-icon-title">
+          <ion-icon name="print-outline" color="medium" class="format-icon"></ion-icon>
+          <div class="card-text">
+            <ion-card-title>Drucken / PDF</ion-card-title>
+            <ion-card-subtitle>Druckoptimierte Ansicht</ion-card-subtitle>
+          </div>
+        </div>
+      </ion-card-header>
+      <ion-card-content>
+        <p class="format-desc">Öffnet das Rezept druckoptimiert (z. B. für AirPrint oder als PDF speichern).</p>
+        <div class="actions-row">
+          <ion-button
+            expand="block"
+            fill="outline"
+            color="dark"
+            (click)="print()"
+            [disabled]="isSharing"
+            class="primary-action-btn"
+          >
+            <ion-icon slot="start" name="print-outline"></ion-icon>
+            Druckansicht öffnen
+          </ion-button>
+        </div>
+      </ion-card-content>
+    </ion-card>
+  </div>
+</ion-content>

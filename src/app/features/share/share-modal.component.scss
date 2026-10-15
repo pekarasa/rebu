@@ -1,0 +1,139 @@
+.share-content {
+  --background: var(--ion-background-color, #ffffff);
+}
+
+.recipe-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--ion-color-light, #f4f5f8);
+  border-radius: 12px;
+  margin-bottom: 16px;
+
+  .recipe-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--ion-color-primary, #3880ff);
+    color: #fff;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .recipe-meta {
+    flex: 1;
+    min-width: 0;
+
+    .recipe-title {
+      margin: 0;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--ion-text-color, #1a1a1a);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .recipe-sub {
+      margin: 2px 0 0;
+      font-size: 0.85rem;
+      color: var(--ion-color-medium, #666);
+    }
+  }
+}
+
+.section-hint {
+  font-size: 0.9rem;
+  color: var(--ion-color-medium, #666);
+  margin: 0 0 12px 4px;
+}
+
+.format-cards-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.format-card {
+  margin: 0;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border: 1px solid rgba(var(--ion-color-medium-rgb, 128, 128, 128), 0.15);
+
+  ion-card-header {
+    padding: 12px 16px 8px;
+  }
+
+  ion-card-content {
+    padding: 0 16px 14px;
+  }
+}
+
+.card-icon-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .format-icon {
+    font-size: 26px;
+    flex-shrink: 0;
+  }
+
+  .card-text {
+    flex: 1;
+
+    ion-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--ion-text-color, #1a1a1a);
+    }
+
+    ion-card-subtitle {
+      font-size: 0.8rem;
+      color: var(--ion-color-medium, #666);
+      margin-top: 2px;
+    }
+  }
+}
+
+.format-desc {
+  font-size: 0.85rem;
+  color: var(--ion-color-step-600, #555);
+  line-height: 1.4;
+  margin: 0 0 12px;
+
+  code {
+    background: var(--ion-color-light, #f4f5f8);
+    padding: 2px 4px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+}
+
+.photo-toggle-item {
+  --background: transparent;
+  --padding-start: 0;
+  --inner-padding-end: 0;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .primary-action-btn {
+    flex: 1;
+    margin: 0;
+    font-weight: 600;
+  }
+
+  ion-button[fill='outline'] {
+    margin: 0;
+  }
+}
