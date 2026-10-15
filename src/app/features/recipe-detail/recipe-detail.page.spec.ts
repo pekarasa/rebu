@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, Router } from '@angular/router';
-import { AlertController, NavController, ToastController } from '@ionic/angular';
+import { AlertController, ModalController, NavController, ToastController } from '@ionic/angular';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { KeepAwakeService } from '../../core/keep-awake.service';
 import { PhotoService } from '../../core/photo.service';
@@ -8,6 +8,7 @@ import { PortionScalingService } from '../../core/portion-scaling.service';
 import { RecipeRepository } from '../../core/recipe.repository';
 import { Kategorie } from '../../models/kategorie.enum';
 import { Recipe } from '../../models/recipe.model';
+import { ShareModalComponent } from '../share/share-modal.component';
 import { RecipeDetailPage } from './recipe-detail.page';
 
 describe('RecipeDetailPage', () => {
@@ -33,6 +34,9 @@ describe('RecipeDetailPage', () => {
     navigateBack: ReturnType<typeof vi.fn>;
   };
   let mockAlertCtrl: {
+    create: ReturnType<typeof vi.fn>;
+  };
+  let mockModalCtrl: {
     create: ReturnType<typeof vi.fn>;
   };
   let mockToastCtrl: {
@@ -132,6 +136,12 @@ describe('RecipeDetailPage', () => {
       }),
     };
 
+    mockModalCtrl = {
+      create: vi.fn().mockResolvedValue({
+        present: vi.fn().mockResolvedValue(undefined),
+      }),
+    };
+
     mockToastCtrl = {
       create: vi.fn().mockResolvedValue({
         present: vi.fn().mockResolvedValue(undefined),
@@ -148,6 +158,7 @@ describe('RecipeDetailPage', () => {
         { provide: Router, useValue: mockRouter },
         { provide: NavController, useValue: mockNavCtrl },
         { provide: AlertController, useValue: mockAlertCtrl },
+        { provide: ModalController, useValue: mockModalCtrl },
         { provide: ToastController, useValue: mockToastCtrl },
         {
           provide: ActivatedRoute,
@@ -307,6 +318,21 @@ describe('RecipeDetailPage', () => {
     it('navigiert zum Bearbeiten-Screen', () => {
       component.editRecipe();
       expect(mockRouter.navigate).toHaveBeenCalledWith(['/recipes', 'r1', 'edit']);
+    });
+
+    it('öffnet das ShareModalComponent über ModalController beim Teilen', async () => {
+      component.currentPortions = 6;
+      await component.openShare();
+
+      expect(mockModalCtrl.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          component: ShareModalComponent,
+          componentProps: {
+            recipe: sampleRecipe,
+            portions: 6,
+          },
+        }),
+      );
     });
 
     it('öffnet Bestätigungsdialog vor dem Löschen', async () => {

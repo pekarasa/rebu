@@ -12,6 +12,7 @@ import {
   IonProgressBar,
   IonTitle,
   IonToolbar,
+  ModalController,
   NavController,
   ToastController,
   ViewWillEnter,
@@ -44,6 +45,7 @@ import { Recipe } from '../../models/recipe.model';
 import { formatSaisonDisplay } from '../../models/saison.enum';
 import { BadgeColor, BadgeComponent } from '../../shared/components/badge/badge.component';
 import { PortionSelectorComponent } from '../../shared/components/portion-selector/portion-selector.component';
+import { ShareModalComponent } from '../share/share-modal.component';
 
 @Component({
   selector: 'app-recipe-detail',
@@ -75,6 +77,7 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
   private keepAwakeService = inject(KeepAwakeService);
   private seasonService = inject(SeasonService);
   private alertCtrl = inject(AlertController);
+  private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
   private cdr = inject(ChangeDetectorRef);
 
@@ -274,34 +277,15 @@ export class RecipeDetailPage implements OnInit, OnDestroy, ViewWillEnter, ViewW
   async openShare(): Promise<void> {
     if (!this.recipe) return;
 
-    // Einfacher Text-Export über Navigator.share falls verfügbar (vollständiger Export in M7)
-    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
-      try {
-        const ingredientsText = this.scaledIngredients
-          .map((z) => `${this.formatAmount(z.menge)} ${z.einheit} ${z.name}`.trim())
-          .join('\n');
-
-        const stepsText = this.recipe.schritte
-          .map((s, idx) => `${idx + 1}. ${s.text}`)
-          .join('\n\n');
-
-        await navigator.share({
-          title: this.recipe.titel,
-          text: `${this.recipe.titel} (${this.currentPortions} Portionen)\n\nZutaten:\n${ingredientsText}\n\nZubereitung:\n${stepsText}`,
-        });
-        return;
-      } catch {
-        // Teilen abgebrochen oder fehlgeschlagen
-        return;
-      }
-    }
-
-    const toast = await this.toastCtrl.create({
-      message: 'Teilen-Funktion wird in Meilenstein 7 vollständig ausgebaut.',
-      duration: 2500,
-      position: 'bottom',
+    const modal = await this.modalCtrl.create({
+      component: ShareModalComponent,
+      componentProps: {
+        recipe: this.recipe,
+        portions: this.currentPortions,
+      },
     });
-    await toast.present();
+
+    await modal.present();
   }
 
   async confirmDelete(): Promise<void> {
