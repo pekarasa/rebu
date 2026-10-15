@@ -280,6 +280,29 @@ describe('RecipeDetailPage', () => {
     });
   });
 
+  describe('KH-Tag und Saison-Badge Anzeige', () => {
+    it('zeigt KH-Badge an wenn khTag gesetzt ist', () => {
+      fixture.detectChanges();
+      const badges = fixture.nativeElement.querySelectorAll('app-badge');
+      const badgeTexts = Array.from(badges).map((b: unknown) =>
+        (b as HTMLElement).textContent?.trim(),
+      );
+      expect(badgeTexts).toContain('Pasta');
+    });
+
+    it('zeigt keinen KH-Badge an wenn khTag null ist', async () => {
+      mockRecipeRepo.findById.mockResolvedValueOnce({ ...sampleRecipe, khTag: null });
+      await component.loadRecipe('r1');
+      fixture.detectChanges();
+
+      const badges = fixture.nativeElement.querySelectorAll('app-badge');
+      const badgeTexts = Array.from(badges).map((b: unknown) =>
+        (b as HTMLElement).textContent?.trim(),
+      );
+      expect(badgeTexts).not.toContain('Pasta');
+    });
+  });
+
   describe('Aktionen (Bearbeiten, Teilen, Löschen)', () => {
     it('navigiert zum Bearbeiten-Screen', () => {
       component.editRecipe();
