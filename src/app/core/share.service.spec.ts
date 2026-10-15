@@ -232,4 +232,182 @@ describe('ShareService - Formatting & Encoding', () => {
       expect(mockPhotoService.getPhotoDisplayUrl).not.toHaveBeenCalled();
     });
   });
+
+  describe('canShare', () => {
+    it('gibt true zurück, wenn sharePlugin.canShare true liefert', async () => {
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: vi.fn(),
+      } as any;
+
+      const result = await service.canShare();
+      expect(result).toBe(true);
+    });
+
+    it('fällt auf false zurück, wenn weder Plugin noch navigator.share vorhanden ist', async () => {
+      service.sharePlugin = {
+        canShare: vi.fn().mockRejectedValue(new Error('not supported')),
+        share: vi.fn(),
+      } as any;
+
+      const origShare = (navigator as any).share;
+      try {
+        delete (navigator as any).share;
+        const result = await service.canShare();
+        expect(result).toBe(false);
+      } finally {
+        (navigator as any).share = origShare;
+      }
+    });
+  });
+
+  describe('shareText', () => {
+    it('nutzt das native Share-Plugin, wenn verfügbar', async () => {
+      const mockShare = vi
+        .fn()
+        .mockResolvedValue({ activityType: 'com.apple.UIKit.activity.Mail' });
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: mockShare,
+      } as any;
+
+      const res = await service.shareText(testRecipe);
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('native');
+      expect(mockShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Kürbis-Süppchen mit Ingwer',
+          text: expect.stringContaining('Kürbis-Süppchen mit Ingwer'),
+        }),
+      );
+    });
+
+    it('erkennt Benutzerabbruch und markiert Ergebnis als nicht erfolgreich', async () => {
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: vi.fn().mockRejectedValue(new Error('Share canceled by user')),
+      } as any;
+
+      const res = await service.shareText(testRecipe);
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('Abgebrochen');
+    });
+
+    it('fällt auf Zwischenablage zurück, wenn nativer Dialog nicht unterstützt wird', async () => {
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: false }),
+        share: vi.fn(),
+      } as any;
+      vi.spyOn(service, 'copyTextToClipboard').mockResolvedValue(true);
+
+      const res = await service.shareText(testRecipe);
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('clipboard');
+    });
+  });
+
+  describe('shareDeepLink', () => {
+    it('teilt URL über das native Share-Plugin', async () => {
+      const mockShare = vi.fn().mockResolvedValue({});
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: mockShare,
+      } as any;
+
+      const res = await service.shareDeepLink(testRecipe);
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('native');
+      expect(mockShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: expect.stringContaining('https://rebu.app/recipe?data='),
+        }),
+      );
+    });
+  });
+
+  describe('shareJsonFile', () => {
+    it('schreibt die JSON-Datei in das Filesystem und teilt die Datei nativ', async () => {
+      const mockWriteFile = vi
+        .fn()
+        .mockResolvedValue({ uri: 'file:///cache/exports/Kürbis-Süppchen.rezept.json' });
+      const mockShare = vi.fn().mockResolvedValue({});
+
+      service.filesystemPlugin = {
+        writeFile: mockWriteFile,
+      } as any;
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: mockShare,
+      } as any;
+
+      const res = await service.shareJsonFile(testRecipe);
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('native');
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: 'exports/Kürbis-Süppchen mit Ingwer.rezept.json',
+        }),
+      );
+      expect(mockShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          files: ['file:///cache/exports/Kürbis-Süppchen.rezept.json'],
+        }),
+      );
+    });
+
+    it('fällt im Webbrowser auf Datei-Download zurück', async () => {
+      service.filesystemPlugin = {
+        writeFile: vi.fn().mockRejectedValue(new Error('Filesystem not supported on web')),
+      } as any;
+      const downloadSpy = vi.spyOn(service, 'triggerFileDownload').mockImplementation(() => {});
+
+      const res = await service.shareJsonFile(testRecipe);
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('download');
+      expect(downloadSpy).toHaveBeenCalledWith(
+        'Kürbis-Süppchen mit Ingwer.rezept.json',
+        expect.stringContaining('"app": "rebu"'),
+        'application/json',
+      );
+    });
+  });
+
+  describe('copyTextToClipboard & printRecipe', () => {
+    it('kopiert Text in die Zwischenablage über navigator.clipboard falls vorhanden', async () => {
+      const writeTextMock = vi.fn().mockResolvedValue(undefined);
+      Object.assign(navigator, {
+        clipboard: {
+          writeText: writeTextMock,
+        },
+      });
+
+      const success = await service.copyTextToClipboard('Hallo Welt');
+
+      expect(success).toBe(true);
+      expect(writeTextMock).toHaveBeenCalledWith('Hallo Welt');
+    });
+
+    it('öffnet Druckdialog über printRecipe fehlerfrei', () => {
+      const mockPrintWindow = {
+        document: {
+          write: vi.fn(),
+          close: vi.fn(),
+        },
+        focus: vi.fn(),
+        print: vi.fn(),
+      };
+      vi.spyOn(window, 'open').mockReturnValue(mockPrintWindow as any);
+
+      service.printRecipe(testRecipe);
+
+      expect(mockPrintWindow.document.write).toHaveBeenCalled();
+      expect(mockPrintWindow.print).toHaveBeenCalled();
+    });
+  });
 });

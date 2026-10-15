@@ -1,9 +1,17 @@
 import { inject, Injectable } from '@angular/core';
 import { Share, SharePlugin } from '@capacitor/share';
-import { Filesystem } from '@capacitor/filesystem';
+import { Directory, Encoding, Filesystem } from '@capacitor/filesystem';
 import { PortionScalingService } from './portion-scaling.service';
 import { PhotoService } from './photo.service';
 import { Recipe } from '../models/recipe.model';
+
+export type ShareMethod = 'native' | 'clipboard' | 'download';
+
+export interface ShareExecutionResult {
+  success: boolean;
+  method?: ShareMethod;
+  error?: string;
+}
 
 export interface RecipeExportIngredient {
   id?: string;
@@ -269,6 +277,246 @@ export class ShareService {
     }
     const base64 = btoa(binary);
     return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+
+  /**
+   * Prüft, ob nativer Teilen-Dialog unterstützt wird.
+   */
+  async canShare(): Promise<boolean> {
+    try {
+      if (this.sharePlugin && typeof this.sharePlugin.canShare === 'function') {
+        const res = await this.sharePlugin.canShare();
+        if (res.value) return true;
+      }
+    } catch {
+      // Ignorieren und Web-Check probieren
+    }
+
+    return typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  }
+
+  /**
+   * Teilt ein Rezept als formatierten Klartext.
+   * Versucht zuerst Capacitor Share / Web Share API, fällt sonst auf Zwischenablage zurück.
+   */
+  async shareText(recipe: Recipe, portions?: number): Promise<ShareExecutionResult> {
+    const formattedText = this.formatAsText(recipe, portions);
+    return this.shareContent({
+      title: recipe.titel,
+      text: formattedText,
+      dialogTitle: `${recipe.titel} teilen`,
+    });
+  }
+
+  /**
+   * Teilt ein Rezept als App-zu-App Deep Link.
+   */
+  async shareDeepLink(recipe: Recipe, options?: DeepLinkOptions): Promise<ShareExecutionResult> {
+    const link = this.encodeDeepLink(recipe, options);
+    return this.shareContent({
+      title: recipe.titel,
+      text: `${recipe.titel} – mit Rebu ansehen`,
+      url: link,
+      dialogTitle: `${recipe.titel} Link teilen`,
+    });
+  }
+
+  /**
+   * Exportiert ein Rezept als .json Datei und öffnet den nativen Share-Dialog.
+   * Falls nicht auf nativer Plattform oder Filesystem/Share fehlschlägt,
+   * wird die Datei im Webbrowser als Download angeboten.
+   */
+  async shareJsonFile(recipe: Recipe, includePhoto = true): Promise<ShareExecutionResult> {
+    try {
+      const fileName = this.getExportFileName(recipe.titel);
+      const jsonContent = await this.createRecipeExportJson(recipe, includePhoto);
+
+      let fileUri: string | null = null;
+      try {
+        const writeResult = await this.filesystemPlugin.writeFile({
+          path: `exports/${fileName}`,
+          data: jsonContent,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+        fileUri = writeResult?.uri ?? null;
+      } catch (fsErr) {
+        console.warn('Filesystem.writeFile im Cache fehlgeschlagen:', fsErr);
+      }
+
+      if (fileUri) {
+        try {
+          const canShareRes = await this.sharePlugin.canShare();
+          if (canShareRes.value) {
+            await this.sharePlugin.share({
+              title: fileName,
+              files: [fileUri],
+              dialogTitle: `${recipe.titel} als Datei teilen`,
+            });
+            return { success: true, method: 'native' };
+          }
+        } catch (shareErr) {
+          if (this.isUserCancellation(shareErr)) {
+            return { success: false, error: 'Abgebrochen' };
+          }
+        }
+      }
+
+      // Fallback: Browser Download
+      this.triggerFileDownload(fileName, jsonContent, 'application/json');
+      return { success: true, method: 'download' };
+    } catch (err) {
+      console.error('ShareService.shareJsonFile fehlgeschlagen:', err);
+      return { success: false, error: 'Datei-Export fehlgeschlagen' };
+    }
+  }
+
+  /**
+   * Kopiert einen String in die System-Zwischenablage.
+   */
+  async copyTextToClipboard(text: string): Promise<boolean> {
+    if (
+      typeof navigator !== 'undefined' &&
+      navigator.clipboard &&
+      typeof navigator.clipboard.writeText === 'function'
+    ) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        // Fallback
+      }
+    }
+
+    try {
+      if (typeof document !== 'undefined') {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const success = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return success;
+      }
+    } catch {
+      return false;
+    }
+    return false;
+  }
+
+  /**
+   * Druckfreundliche Ansicht (v2 Vorbereitung / Druckdialog).
+   */
+  printRecipe(recipe: Recipe, portions?: number): void {
+    if (typeof window === 'undefined') return;
+    const formattedText = this.formatAsText(recipe, portions);
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      const title = recipe.titel;
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="de">
+          <head>
+            <meta charset="utf-8">
+            <title>${title}</title>
+            <style>
+              body { font-family: system-ui, -apple-system, sans-serif; padding: 2rem; line-height: 1.6; color: #111; }
+              h1 { margin-bottom: 0.5rem; font-size: 1.75rem; }
+              pre { font-family: inherit; white-space: pre-wrap; font-size: 1rem; }
+            </style>
+          </head>
+          <body>
+            <h1>${title}</h1>
+            <pre>${formattedText}</pre>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+    } else {
+      window.print();
+    }
+  }
+
+  /**
+   * Hilfsfunktion zum Auslösen eines Dateidownloads im Browser.
+   */
+  triggerFileDownload(fileName: string, content: string, mimeType = 'application/json'): void {
+    if (typeof document === 'undefined') return;
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    URL.revokeObjectURL(url);
+  }
+
+  /**
+   * Interner Verteiler: versucht natives Teilen via Capacitor oder Web Share API,
+   * fällt ansonsten auf die Zwischenablage zurück.
+   */
+  private async shareContent(options: {
+    title: string;
+    text?: string;
+    url?: string;
+    dialogTitle?: string;
+  }): Promise<ShareExecutionResult> {
+    // 1. Capacitor Share Plugin versuchen
+    try {
+      const canShareRes = await this.sharePlugin.canShare();
+      if (canShareRes.value) {
+        await this.sharePlugin.share(options);
+        return { success: true, method: 'native' };
+      }
+    } catch (pluginErr) {
+      if (this.isUserCancellation(pluginErr)) {
+        return { success: false, error: 'Abgebrochen' };
+      }
+    }
+
+    // 2. Web Share API versuchen
+    if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+      try {
+        await navigator.share({
+          title: options.title,
+          text: options.text,
+          url: options.url,
+        });
+        return { success: true, method: 'native' };
+      } catch (webErr) {
+        if (this.isUserCancellation(webErr)) {
+          return { success: false, error: 'Abgebrochen' };
+        }
+      }
+    }
+
+    // 3. Fallback: Zwischenablage
+    const toCopy = options.url || options.text || options.title;
+    const copied = await this.copyTextToClipboard(toCopy);
+    if (copied) {
+      return { success: true, method: 'clipboard' };
+    }
+
+    return { success: false, error: 'Teilen fehlgeschlagen' };
+  }
+
+  private isUserCancellation(err: unknown): boolean {
+    if (!err) return false;
+    const msg = String(err).toLowerCase();
+    return (
+      msg.includes('cancel') ||
+      msg.includes('aborted') ||
+      msg.includes('abort') ||
+      msg.includes('dismiss') ||
+      msg.includes('closed')
+    );
   }
 
   /**
