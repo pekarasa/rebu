@@ -3,6 +3,7 @@ import { Component, inject, Input, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   AlertController,
+  IonBadge,
   IonButton,
   IonButtons,
   IonCard,
@@ -77,6 +78,7 @@ export interface ImportModalDismissResult {
     IonItem,
     IonLabel,
     IonCheckbox,
+    IonBadge,
     IonSpinner,
     BadgeComponent,
   ],
@@ -96,6 +98,7 @@ export class ImportModalComponent implements OnInit {
   // Für Mehrfach-Import (Sammel-Import / M9)
   selectedIndices = new Set<number>();
   previewIndex = 0;
+  collisionMap = new Map<string, boolean>();
 
   get isMulti(): boolean {
     return this.drafts.length > 1;
@@ -147,10 +150,19 @@ export class ImportModalComponent implements OnInit {
     if (this.isMulti) {
       // Alle standardmäßig vorauswählen
       this.drafts.forEach((_, idx) => this.selectedIndices.add(idx));
+      for (const draft of this.drafts) {
+        const coll = await this.importService.checkUuidCollision(draft.id);
+        this.collisionMap.set(draft.id, coll);
+      }
     }
 
     if (this.currentDraft) {
-      this.hasCollision = await this.importService.checkUuidCollision(this.currentDraft.id);
+      if (this.collisionMap.has(this.currentDraft.id)) {
+        this.hasCollision = !!this.collisionMap.get(this.currentDraft.id);
+      } else {
+        this.hasCollision = await this.importService.checkUuidCollision(this.currentDraft.id);
+        this.collisionMap.set(this.currentDraft.id, this.hasCollision);
+      }
       this.collisionChecked = true;
     }
   }
@@ -158,7 +170,12 @@ export class ImportModalComponent implements OnInit {
   async selectPreview(index: number): Promise<void> {
     this.previewIndex = index;
     if (this.currentDraft) {
-      this.hasCollision = await this.importService.checkUuidCollision(this.currentDraft.id);
+      if (this.collisionMap.has(this.currentDraft.id)) {
+        this.hasCollision = !!this.collisionMap.get(this.currentDraft.id);
+      } else {
+        this.hasCollision = await this.importService.checkUuidCollision(this.currentDraft.id);
+        this.collisionMap.set(this.currentDraft.id, this.hasCollision);
+      }
     }
   }
 
@@ -279,20 +296,29 @@ export class ImportModalComponent implements OnInit {
       return;
     }
 
-    // Prüfen, ob Kollisionen vorliegen
-    let hasAnyCollision = false;
-    for (const draft of selected) {
-      if (await this.importService.checkUuidCollision(draft.id)) {
-        hasAnyCollision = true;
-        break;
-      }
-    }
+    // Prüfen, wie viele der ausgewählten Rezepte bereits existieren
+    const collidingCount = (
+      await Promise.all(
+        selected.map(async (draft) => {
+          if (this.collisionMap.has(draft.id)) {
+            return this.collisionMap.get(draft.id);
+          }
+          const coll = await this.importService.checkUuidCollision(draft.id);
+          this.collisionMap.set(draft.id, coll);
+          return coll;
+        }),
+      )
+    ).filter(Boolean).length;
 
-    if (hasAnyCollision) {
+    if (collidingCount > 0) {
+      const message =
+        collidingCount === 1
+          ? '1 der ausgewählten Rezepte existiert bereits auf deinem Gerät. Wie möchtest du vorhandene Rezepte behandeln?'
+          : `${collidingCount} der ausgewählten Rezepte existieren bereits auf deinem Gerät. Wie möchtest du vorhandene Rezepte behandeln?`;
+
       const alert = await this.alertCtrl.create({
         header: 'Bereits vorhandene Rezepte',
-        message:
-          'Einige der Rezepte existieren bereits auf deinem Gerät. Wie sollen diese behandelt werden?',
+        message,
         buttons: [
           {
             text: 'Abbrechen',
@@ -333,12 +359,22 @@ export class ImportModalComponent implements OnInit {
         }
       }
 
-      await this.showToast(
-        `${successCount} von ${recipesToImport.length} Rezept(en) erfolgreich importiert!`,
-        'success',
-      );
+      if (successCount === recipesToImport.length) {
+        await this.showToast(
+          `${successCount} von ${recipesToImport.length} Rezept(en) erfolgreich importiert!`,
+          'success',
+        );
+      } else if (successCount > 0) {
+        await this.showToast(
+          `${successCount} von ${recipesToImport.length} Rezept(en) importiert.`,
+          'warning',
+        );
+      } else {
+        await this.showToast('Import fehlgeschlagen.', 'danger');
+      }
+
       await this.modalCtrl.dismiss({
-        imported: true,
+        imported: successCount > 0,
         count: successCount,
       } satisfies ImportModalDismissResult);
     } catch (err) {

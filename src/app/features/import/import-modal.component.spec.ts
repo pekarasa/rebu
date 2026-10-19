@@ -216,4 +216,90 @@ describe('ImportModalComponent', () => {
       count: 1,
     });
   });
+
+  it('wählt mit toggleAll alle Entwürfe aus oder ab', async () => {
+    const secondDraft = { ...sampleDraft, id: 'draft-2', titel: 'Zweites Rezept' };
+    component.drafts = [sampleDraft, secondDraft];
+
+    await component.ngOnInit();
+    expect(component.selectedIndices.size).toBe(2);
+
+    // Alle abwählen
+    component.toggleAll({ detail: { checked: false } } as CustomEvent);
+    expect(component.selectedIndices.size).toBe(0);
+
+    // Alle auswählen
+    component.toggleAll({ detail: { checked: true } } as CustomEvent);
+    expect(component.selectedIndices.size).toBe(2);
+  });
+
+  it('wechselt die Rezept-Vorschau bei selectPreview', async () => {
+    const secondDraft = { ...sampleDraft, id: 'draft-2', titel: 'Zweites Rezept' };
+    component.drafts = [sampleDraft, secondDraft];
+
+    await component.ngOnInit();
+    expect(component.currentDraft?.titel).toBe('Sommerlicher Tomatensalat');
+
+    await component.selectPreview(1);
+    expect(component.previewIndex).toBe(1);
+    expect(component.currentDraft?.titel).toBe('Zweites Rezept');
+  });
+
+  it('zeigt bei Mehrfachauswahl einen Kollisions-Alert und importiert als Kopien', async () => {
+    const secondDraft = { ...sampleDraft, id: 'draft-2', titel: 'Zweites Rezept' };
+    component.drafts = [sampleDraft, secondDraft];
+
+    // Simuliere: Erstes Rezept kollidiert
+    mockImportService.checkUuidCollision.mockImplementation((id: string) =>
+      Promise.resolve(id === 'test-recipe-uuid-1'),
+    );
+
+    let alertOptions: any;
+    mockAlertCtrl.create.mockImplementation((opts) => {
+      alertOptions = opts;
+      return Promise.resolve({
+        present: vi.fn().mockResolvedValue(undefined),
+      });
+    });
+
+    await component.ngOnInit();
+    fixture.detectChanges();
+
+    const pills = fixture.nativeElement.querySelectorAll('[data-testid="collision-pill"]');
+    expect(pills.length).toBe(1);
+
+    await component.onImportSelected();
+
+    expect(mockAlertCtrl.create).toHaveBeenCalled();
+    expect(alertOptions.header).toBe('Bereits vorhandene Rezepte');
+
+    // Klick auf "Als Kopien anlegen" simulieren
+    const copyButton = alertOptions.buttons.find((b: any) => b.text === 'Als Kopien anlegen');
+    expect(copyButton).toBeDefined();
+    await copyButton.handler();
+
+    expect(mockImportService.importRecipe).toHaveBeenCalledTimes(2);
+    expect(mockImportService.importRecipe).toHaveBeenCalledWith(sampleDraft, {
+      collisionResolution: 'copy',
+    });
+    expect(mockModalCtrl.dismiss).toHaveBeenCalledWith({
+      imported: true,
+      count: 2,
+    });
+  });
+
+  it('warnt wenn bei Sammel-Import keine Rezepte ausgewählt sind', async () => {
+    const secondDraft = { ...sampleDraft, id: 'draft-2', titel: 'Zweites Rezept' };
+    component.drafts = [sampleDraft, secondDraft];
+
+    await component.ngOnInit();
+    component.selectedIndices.clear();
+
+    await component.onImportSelected();
+
+    expect(mockImportService.importRecipe).not.toHaveBeenCalled();
+    expect(mockToastCtrl.create).toHaveBeenCalledWith(
+      expect.objectContaining({ message: 'Bitte wähle mindestens ein Rezept aus.' }),
+    );
+  });
 });

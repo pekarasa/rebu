@@ -44,6 +44,12 @@
                 <p>{{ draft.portionen }} Portionen • {{ draft.zutaten.length }} Zutaten</p>
               </ion-label>
 
+              @if (collisionMap.get(draft.id)) {
+                <ion-badge color="warning" slot="end" class="collision-pill" data-testid="collision-pill">
+                  Vorhanden
+                </ion-badge>
+              }
+
               <ion-button fill="clear" slot="end" size="small" (click)="selectPreview(idx)">Vorschau</ion-button>
             </ion-item>
           }

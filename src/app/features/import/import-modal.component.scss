@@ -206,6 +206,13 @@
     --background: var(--ion-color-light, #f4f5f8);
   }
 
+  .collision-pill {
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-right: 6px;
+    letter-spacing: 0.02em;
+  }
+
   .clickable-label {
     cursor: pointer;
   }
