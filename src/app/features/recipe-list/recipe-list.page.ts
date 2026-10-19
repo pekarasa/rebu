@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, ElementRef, inject, OnInit, ViewChild } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import {
   ActionSheetController,
@@ -20,12 +20,15 @@ import {
   IonSearchbar,
   IonTitle,
   IonToolbar,
+  ModalController,
+  ToastController,
   ViewWillEnter,
 } from '@ionic/angular';
 import { addIcons } from 'ionicons';
 import {
   addOutline,
   closeCircle,
+  downloadOutline,
   funnelOutline,
   leafOutline,
   nutritionOutline,
@@ -39,6 +42,8 @@ import {
   FilterPreferencesState,
 } from '../../core/filter-preferences.service';
 import { RecipeFilter, RecipeRepository, RecipeSortOrder } from '../../core/recipe.repository';
+import { ImportedRecipeDraft, ImportService } from '../../core/import.service';
+import { ImportModalComponent, ImportModalDismissResult } from '../import/import-modal.component';
 import { KH_TAGS } from '../../data/zutat-kh.data';
 import { Recipe } from '../../models/recipe.model';
 import { getCurrentSaison, getMonateForSaison, Saison } from '../../models/saison.enum';
@@ -75,7 +80,12 @@ export class RecipeListPage implements OnInit, ViewWillEnter {
   private recipeRepo = inject(RecipeRepository);
   private filterPrefs = inject(FilterPreferencesService);
   private actionSheetCtrl = inject(ActionSheetController);
+  private modalCtrl = inject(ModalController);
+  private toastCtrl = inject(ToastController);
+  private importService = inject(ImportService);
   private router = inject(Router);
+
+  @ViewChild('fileInput') fileInputRef?: ElementRef<HTMLInputElement>;
 
   recipes: Recipe[] = [];
   searchTerm = '';
@@ -90,6 +100,7 @@ export class RecipeListPage implements OnInit, ViewWillEnter {
   constructor() {
     addIcons({
       addOutline,
+      downloadOutline,
       searchOutline,
       leafOutline,
       nutritionOutline,
@@ -368,6 +379,53 @@ export class RecipeListPage implements OnInit, ViewWillEnter {
 
   onRecipeSelected(recipe: Recipe): void {
     void this.router.navigate(['/recipes', recipe.id]);
+  }
+
+  triggerFileInput(): void {
+    this.fileInputRef?.nativeElement.click();
+  }
+
+  async onFileSelected(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    input.value = '';
+
+    const parseResult = await this.importService.parseFile(file);
+    if (!parseResult.success || parseResult.recipes.length === 0) {
+      await this.showToast(
+        parseResult.error || 'Die Datei enthält kein gültiges Rezept.',
+        'danger',
+      );
+      return;
+    }
+
+    await this.openImportModal(parseResult.recipes);
+  }
+
+  async openImportModal(drafts: ImportedRecipeDraft[]): Promise<void> {
+    const modal = await this.modalCtrl.create({
+      component: ImportModalComponent,
+      componentProps: { drafts },
+    });
+
+    await modal.present();
+
+    const { data } = await modal.onWillDismiss<ImportModalDismissResult>();
+    if (data?.imported) {
+      await this.loadRecipes();
+    }
+  }
+
+  private async showToast(message: string, color: 'success' | 'danger' | 'warning'): Promise<void> {
+    const toast = await this.toastCtrl.create({
+      message,
+      duration: 3000,
+      color,
+      position: 'bottom',
+    });
+    await toast.present();
   }
 
   private async persistAndReload(partial: Partial<FilterPreferencesState>): Promise<void> {

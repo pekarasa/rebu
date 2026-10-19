@@ -1,12 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
-import { ActionSheetController } from '@ionic/angular';
+import { ActionSheetController, ModalController, ToastController } from '@ionic/angular';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   FilterPreferencesService,
   FilterPreferencesState,
 } from '../../core/filter-preferences.service';
 import { RecipeRepository } from '../../core/recipe.repository';
+import { ImportService } from '../../core/import.service';
+import { ImportModalComponent } from '../import/import-modal.component';
 import { Kategorie } from '../../models/kategorie.enum';
 import { Recipe } from '../../models/recipe.model';
 import { getCurrentSaison, getMonateForSaison, Saison } from '../../models/saison.enum';
@@ -29,6 +31,15 @@ describe('RecipeListPage', () => {
   };
   let mockActionSheetCtrl: {
     create: ReturnType<typeof vi.fn>;
+  };
+  let mockModalCtrl: {
+    create: ReturnType<typeof vi.fn>;
+  };
+  let mockToastCtrl: {
+    create: ReturnType<typeof vi.fn>;
+  };
+  let mockImportService: {
+    parseFile: ReturnType<typeof vi.fn>;
   };
 
   const sampleRecipes: Recipe[] = [
@@ -89,6 +100,36 @@ describe('RecipeListPage', () => {
       }),
     };
 
+    mockModalCtrl = {
+      create: vi.fn().mockResolvedValue({
+        present: vi.fn().mockResolvedValue(undefined),
+        onWillDismiss: vi.fn().mockResolvedValue({ data: { imported: true } }),
+      }),
+    };
+
+    mockToastCtrl = {
+      create: vi.fn().mockResolvedValue({
+        present: vi.fn().mockResolvedValue(undefined),
+      }),
+    };
+
+    mockImportService = {
+      parseFile: vi.fn().mockResolvedValue({
+        success: true,
+        recipes: [
+          {
+            id: 'imported-id-1',
+            titel: 'Importierte Lasagne',
+            portionen: 4,
+            zutaten: [],
+            schritte: [],
+            saisonMonate: [1, 2, 3],
+            khTag: 'Pasta',
+          },
+        ],
+      }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [RecipeListPage],
       providers: [
@@ -96,6 +137,9 @@ describe('RecipeListPage', () => {
         { provide: RecipeRepository, useValue: mockRecipeRepo },
         { provide: FilterPreferencesService, useValue: mockFilterPrefs },
         { provide: ActionSheetController, useValue: mockActionSheetCtrl },
+        { provide: ModalController, useValue: mockModalCtrl },
+        { provide: ToastController, useValue: mockToastCtrl },
+        { provide: ImportService, useValue: mockImportService },
       ],
     }).compileComponents();
 
@@ -266,7 +310,62 @@ describe('RecipeListPage', () => {
   it('lädt Rezepte bei ionViewWillEnter erneut', async () => {
     mockRecipeRepo.findAll.mockClear();
     await component.ionViewWillEnter();
+    expect(mockRecipeRepo.findAll).toHaveBeenCalled();
+  });
 
-    expect(mockRecipeRepo.findAll).toHaveBeenCalledTimes(1);
+  it('triggerFileInput klickt das versteckte File-Input-Element an', () => {
+    const input = fixture.nativeElement.querySelector(
+      '[data-testid="recipe-file-input"]',
+    ) as HTMLInputElement;
+    const clickSpy = vi.spyOn(input, 'click');
+
+    component.triggerFileInput();
+
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('onFileSelected parst Datei und öffnet ImportModalComponent', async () => {
+    const mockFile = new File(['{"app":"rebu"}'], 'rezept.json', { type: 'application/json' });
+    const event = {
+      target: {
+        files: [mockFile],
+        value: 'C:\\fake\\rezept.json',
+      },
+    } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(mockImportService.parseFile).toHaveBeenCalledWith(mockFile);
+    expect(mockModalCtrl.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        component: ImportModalComponent,
+      }),
+    );
+  });
+
+  it('onFileSelected zeigt Fehler-Toast wenn Parsing fehlschlägt', async () => {
+    mockImportService.parseFile.mockResolvedValueOnce({
+      success: false,
+      error: 'Ungültiges Format',
+      recipes: [],
+    });
+
+    const mockFile = new File(['invalid'], 'invalid.json', { type: 'application/json' });
+    const event = {
+      target: {
+        files: [mockFile],
+        value: '',
+      },
+    } as unknown as Event;
+
+    await component.onFileSelected(event);
+
+    expect(mockToastCtrl.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        message: 'Ungültiges Format',
+        color: 'danger',
+      }),
+    );
+    expect(mockModalCtrl.create).not.toHaveBeenCalled();
   });
 });

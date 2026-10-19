@@ -2,6 +2,14 @@
   <ion-toolbar color="primary">
     <ion-title>Rezepte</ion-title>
     <ion-buttons slot="end">
+      <ion-button
+        (click)="triggerFileInput()"
+        aria-label="Rezept importieren"
+        title="Rezept importieren"
+        data-testid="btn-import-recipe"
+      >
+        <ion-icon slot="icon-only" name="download-outline"></ion-icon>
+      </ion-button>
       <ion-button (click)="openSortSelection()" aria-label="Sortierung ändern" title="Sortierung ändern">
         <ion-icon slot="icon-only" name="swap-vertical-outline"></ion-icon>
       </ion-button>
@@ -86,6 +94,15 @@
   @if (isLoading) {
   <ion-progress-bar type="indeterminate" color="primary"></ion-progress-bar>
   }
+
+  <input
+    #fileInput
+    type="file"
+    accept=".json,application/json"
+    style="display: none"
+    (change)="onFileSelected($event)"
+    data-testid="recipe-file-input"
+  />
 </ion-header>
 
 <ion-content [fullscreen]="true" class="ion-padding recipe-list-content">
@@ -119,6 +136,10 @@
     <ion-button routerLink="/recipes/new" color="primary" class="empty-action-btn">
       <ion-icon slot="start" name="add-outline"></ion-icon>
       Erstes Rezept erfassen
+    </ion-button>
+    <ion-button (click)="triggerFileInput()" fill="outline" color="primary" class="empty-action-btn">
+      <ion-icon slot="start" name="download-outline"></ion-icon>
+      Rezept importieren
     </ion-button>
     } @else {
     <div class="empty-icon-wrapper">
