@@ -28,9 +28,14 @@ export class RecipeRepository {
   // Anlegen
   // ---------------------------------------------------------------------------
 
-  async create(data: RecipeCreate, saisonMonate: number[], khTag: string | null): Promise<Recipe> {
+  async create(
+    data: RecipeCreate,
+    saisonMonate: number[],
+    khTag: string | null,
+    customId?: string,
+  ): Promise<Recipe> {
     const now = new Date().toISOString();
-    const id = uuidv4();
+    const id = customId || uuidv4();
 
     const recipe: Recipe = {
       id,
@@ -91,6 +96,12 @@ export class RecipeRepository {
 
     const row = result.values[0];
     return this.rowToRecipe(row, await this.findIngredients(id), await this.findSteps(id));
+  }
+
+  async exists(id: string): Promise<boolean> {
+    const conn = this.db.connection;
+    const result = await conn.query(`SELECT id FROM recipe WHERE id = ?`, [id]);
+    return (result.values?.length ?? 0) > 0;
   }
 
   async findAll(filter: RecipeFilter = {}): Promise<Recipe[]> {
@@ -236,19 +247,19 @@ export class RecipeRepository {
 
   private async insertIngredients(
     rezeptId: string,
-    list: Array<Omit<Ingredient, 'id' | 'rezeptId'>>,
+    list: Array<Omit<Ingredient, 'id' | 'rezeptId'> & { id?: string }>,
   ): Promise<Ingredient[]> {
     const conn = this.db.connection;
     const result: Ingredient[] = [];
 
     for (const item of list) {
-      const id = uuidv4();
+      const id = item.id || uuidv4();
       await conn.run(
         `INSERT INTO ingredient (id, rezeptId, reihenfolge, menge, einheit, name)
          VALUES (?,?,?,?,?,?)`,
         [id, rezeptId, item.reihenfolge, item.menge, item.einheit, item.name],
       );
-      result.push({ id, rezeptId, ...item });
+      result.push({ ...item, id, rezeptId });
     }
 
     return result;
@@ -256,20 +267,20 @@ export class RecipeRepository {
 
   private async insertSteps(
     rezeptId: string,
-    list: Array<Omit<Step, 'id' | 'rezeptId'>>,
+    list: Array<Omit<Step, 'id' | 'rezeptId'> & { id?: string }>,
   ): Promise<Step[]> {
     const conn = this.db.connection;
     const result: Step[] = [];
 
     for (const item of list) {
-      const id = uuidv4();
+      const id = item.id || uuidv4();
       await conn.run(`INSERT INTO step (id, rezeptId, reihenfolge, text) VALUES (?,?,?,?)`, [
         id,
         rezeptId,
         item.reihenfolge,
         item.text,
       ]);
-      result.push({ id, rezeptId, ...item });
+      result.push({ ...item, id, rezeptId });
     }
 
     return result;

@@ -138,7 +138,7 @@ class InMemoryDb {
   async query(sql: string, params: unknown[] = []): Promise<{ values: InMemoryRow[] }> {
     const s = sql.trim().replace(/\s+/g, ' ');
 
-    if (/SELECT \* FROM recipe WHERE id/i.test(s)) {
+    if (/SELECT (?:\*|id) FROM recipe WHERE id/i.test(s)) {
       const id = params[0] as string;
       const values = this.table('recipe').filter((r) => r['id'] === id);
       return { values };
@@ -284,9 +284,18 @@ describe('RecipeRepository', () => {
       const r2 = await repo.create({ ...baseRecipe(), titel: 'Risotto' }, [], null);
       expect(r1.id).not.toBe(r2.id);
     });
+
+    it('nutzt eine übergebene customId falls angegeben', async () => {
+      const customId = 'festgelegte-custom-uuid-123';
+      const recipe = await repo.create(baseRecipe(), [], null, customId);
+      expect(recipe.id).toBe(customId);
+      const found = await repo.findById(customId);
+      expect(found).not.toBeNull();
+      expect(found!.id).toBe(customId);
+    });
   });
 
-  describe('findById', () => {
+  describe('findById & exists', () => {
     it('findet ein angelegtes Rezept', async () => {
       const created = await repo.create(baseRecipe(), [9, 10], 'Pasta');
       const found = await repo.findById(created.id);
@@ -297,6 +306,12 @@ describe('RecipeRepository', () => {
     it('gibt null zurück für unbekannte ID', async () => {
       const found = await repo.findById('unbekannte-id');
       expect(found).toBeNull();
+    });
+
+    it('exists prüft Existenz eines Rezepts anhand der ID', async () => {
+      const created = await repo.create(baseRecipe(), [], null);
+      expect(await repo.exists(created.id)).toBe(true);
+      expect(await repo.exists('nicht-existierende-id')).toBe(false);
     });
   });
 
