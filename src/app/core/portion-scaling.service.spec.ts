@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { Ingredient } from '../models/ingredient.model';
 import { PortionScalingService } from './portion-scaling.service';
 
