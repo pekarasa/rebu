@@ -1,0 +1,123 @@
+<ion-header [translucent]="true">
+  <ion-toolbar color="primary">
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/recipes" text="Rezepte"></ion-back-button>
+    </ion-buttons>
+    <ion-title>Einstellungen</ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding settings-content">
+  <!-- Unsichtbarer Datei-Upload für JSON-Import -->
+  <input
+    #fileInput
+    type="file"
+    accept=".json,application/json"
+    (change)="onFileSelected($event)"
+    style="display: none"
+    data-testid="settings-file-input"
+  />
+
+  <!-- Status / Übersicht -->
+  <ion-card class="settings-card stats-card">
+    <ion-card-header>
+      <ion-card-title class="card-title">
+        <ion-icon name="restaurant-outline" class="title-icon"></ion-icon>
+        Rezeptsammlung
+      </ion-card-title>
+      <ion-card-subtitle>Aktueller Stand auf diesem Gerät</ion-card-subtitle>
+    </ion-card-header>
+    <ion-card-content>
+      @if (isLoadingStats) {
+      <div class="stats-loading">
+        <ion-spinner name="crescent"></ion-spinner>
+        <span>Statistiken werden geladen...</span>
+      </div>
+      } @else {
+      <div class="stats-grid">
+        <div class="stat-item">
+          <span class="stat-value" data-testid="stat-recipes-count">{{ recipeCount }}</span>
+          <span class="stat-label">Gespeicherte Rezepte</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-value" data-testid="stat-photos-count">{{ photoCount }}</span>
+          <span class="stat-label">Mit Foto</span>
+        </div>
+      </div>
+      }
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Sammel-Export / Import -->
+  <ion-card class="settings-card actions-card">
+    <ion-card-header>
+      <ion-card-title class="card-title">
+        <ion-icon name="cloud-upload-outline" class="title-icon"></ion-icon>
+        Sicherung & Austausch
+      </ion-card-title>
+      <ion-card-subtitle>Backup erstellen oder Rezepte übertragen</ion-card-subtitle>
+    </ion-card-header>
+
+    <ion-card-content class="no-padding">
+      <ion-list lines="full">
+        <!-- 1. Sammel-Export aller Rezepte -->
+        <ion-item
+          class="action-item"
+          (click)="exportAllRecipes()"
+          button
+          [disabled]="isExporting || isImporting"
+          data-testid="btn-export-all"
+        >
+          <ion-icon name="share-outline" slot="start" color="primary" class="action-icon"></ion-icon>
+          <ion-label class="ion-text-wrap">
+            <h3>Alle Rezepte exportieren</h3>
+            <p>Exportiert die gesamte Rezeptsammlung inklusive Fotos als Sammel-JSON-Datei.</p>
+          </ion-label>
+          @if (isExporting) {
+          <ion-spinner name="crescent" slot="end"></ion-spinner>
+          } @else {
+          <ion-note slot="end" color="medium">{{ recipeCount }} Rezepte</ion-note>
+          }
+        </ion-item>
+
+        <!-- 2. JSON-Datei importieren (Einzeln oder Sammel-Export) -->
+        <ion-item
+          class="action-item"
+          (click)="triggerFileInput()"
+          button
+          [disabled]="isExporting || isImporting"
+          data-testid="btn-import-file"
+        >
+          <ion-icon name="cloud-download-outline" slot="start" color="primary" class="action-icon"></ion-icon>
+          <ion-label class="ion-text-wrap">
+            <h3>Rezepte importieren (.json)</h3>
+            <p>Einzelne Rezeptdatei oder Sammel-Export laden und im Auswahl-Dialog importieren.</p>
+          </ion-label>
+          @if (isImporting) {
+          <ion-spinner name="crescent" slot="end"></ion-spinner>
+          }
+        </ion-item>
+      </ion-list>
+    </ion-card-content>
+  </ion-card>
+
+  <!-- Über die App -->
+  <ion-card class="settings-card info-card">
+    <ion-card-header>
+      <ion-card-title class="card-title">
+        <ion-icon name="information-circle-outline" class="title-icon"></ion-icon>
+        Über Rebu
+      </ion-card-title>
+    </ion-card-header>
+    <ion-card-content>
+      <p class="info-description">
+        Rebu speichert all deine Rezepte lokal auf deinem Gerät. Deine Daten gehören dir und bleiben vollständig offline
+        verfügbar.
+      </p>
+      <div class="app-version-row">
+        <span>Version</span>
+        <ion-note color="medium">1.0.0</ion-note>
+      </div>
+    </ion-card-content>
+  </ion-card>
+</ion-content>
