@@ -51,6 +51,13 @@ export interface SingleRecipeExportPayload {
   recipe: RecipeExportData;
 }
 
+export interface BatchRecipeExportPayload {
+  app: 'rebu';
+  version: number;
+  exportedAt: string;
+  recipes: RecipeExportData[];
+}
+
 export interface DeepLinkOptions {
   scheme?: 'https' | 'rebu';
   baseUrl?: string;
@@ -153,6 +160,17 @@ export class ShareService {
   }
 
   /**
+   * Erzeugt einen Dateinamen für den Sammel-Export im Format:
+   * `rebu-alle-rezepte-YYYY-MM-DD.rezept.json`
+   */
+  getBatchExportFileName(date = new Date()): string {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `rebu-alle-rezepte-${yyyy}-${mm}-${dd}.rezept.json`;
+  }
+
+  /**
    * Kodiert ein Rezept als Deep-Link (App-zu-App).
    * Enthält die vollständigen Rezeptdaten (ohne großes lokales Foto), um URL-Längenlimits einzuhalten.
    */
@@ -229,6 +247,35 @@ export class ShareService {
       version: 1,
       exportedAt: new Date().toISOString(),
       recipe: this.mapRecipeToExportData(recipe, photoBase64),
+    };
+
+    return JSON.stringify(payload, null, 2);
+  }
+
+  /**
+   * Erstellt den JSON-String für den Sammel-Export aller übergebenen Rezepte.
+   * Bindet Fotos als Base64 ein, falls vorhanden und includePhotos = true.
+   */
+  async createBatchExportJson(recipes: Recipe[], includePhotos = true): Promise<string> {
+    const exportedRecipes: RecipeExportData[] = [];
+
+    for (const recipe of recipes) {
+      let photoBase64: string | null = null;
+      if (includePhotos && recipe.fotoPath) {
+        try {
+          photoBase64 = await this.photoService.getPhotoDisplayUrl(recipe.fotoPath);
+        } catch (err) {
+          console.warn(`Foto für Rezept "${recipe.titel}" konnte nicht geladen werden:`, err);
+        }
+      }
+      exportedRecipes.push(this.mapRecipeToExportData(recipe, photoBase64));
+    }
+
+    const payload: BatchRecipeExportPayload = {
+      app: 'rebu',
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      recipes: exportedRecipes,
     };
 
     return JSON.stringify(payload, null, 2);
@@ -369,6 +416,61 @@ export class ShareService {
     } catch (err) {
       console.error('ShareService.shareJsonFile fehlgeschlagen:', err);
       return { success: false, error: 'Datei-Export fehlgeschlagen' };
+    }
+  }
+
+  /**
+   * Exportiert mehrere oder alle Rezepte als .json-Datei und öffnet den nativen Share-Dialog.
+   * Falls nicht auf nativer Plattform oder Filesystem/Share fehlschlägt,
+   * wird die Datei im Webbrowser als Download angeboten.
+   */
+  async shareBatchJsonFile(
+    recipes: Recipe[],
+    includePhotos = true,
+    fileName?: string,
+  ): Promise<ShareExecutionResult> {
+    try {
+      const effectiveFileName = fileName || this.getBatchExportFileName();
+      const jsonContent = await this.createBatchExportJson(recipes, includePhotos);
+
+      let fileUri: string | null = null;
+      try {
+        const writeResult = await this.filesystemPlugin.writeFile({
+          path: `exports/${effectiveFileName}`,
+          data: jsonContent,
+          directory: Directory.Cache,
+          encoding: Encoding.UTF8,
+          recursive: true,
+        });
+        fileUri = writeResult?.uri ?? null;
+      } catch (fsErr) {
+        console.warn('Filesystem.writeFile im Cache fehlgeschlagen:', fsErr);
+      }
+
+      if (fileUri) {
+        try {
+          const canShareRes = await this.sharePlugin.canShare();
+          if (canShareRes.value) {
+            await this.sharePlugin.share({
+              title: effectiveFileName,
+              files: [fileUri],
+              dialogTitle: `Alle Rezepte exportieren (${recipes.length})`,
+            });
+            return { success: true, method: 'native' };
+          }
+        } catch (shareErr) {
+          if (this.isUserCancellation(shareErr)) {
+            return { success: false, error: 'Abgebrochen' };
+          }
+        }
+      }
+
+      // Fallback: Browser Download
+      this.triggerFileDownload(effectiveFileName, jsonContent, 'application/json');
+      return { success: true, method: 'download' };
+    } catch (err) {
+      console.error('ShareService.shareBatchJsonFile fehlgeschlagen:', err);
+      return { success: false, error: 'Sammel-Export fehlgeschlagen' };
     }
   }
 

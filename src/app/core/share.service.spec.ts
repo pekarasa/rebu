@@ -7,7 +7,9 @@ import { Kategorie } from '../models/kategorie.enum';
 
 describe('ShareService - Formatting & Encoding', () => {
   let service: ShareService;
-  let mockPhotoService: Partial<PhotoService>;
+  let mockPhotoService: {
+    getPhotoDisplayUrl: ReturnType<typeof vi.fn>;
+  };
 
   const testRecipe: Recipe = {
     id: 'recipe-uuid-1',
@@ -158,6 +160,14 @@ describe('ShareService - Formatting & Encoding', () => {
     });
   });
 
+  describe('getBatchExportFileName', () => {
+    it('erzeugt einen Dateinamen mit Datum im Format rebu-alle-rezepte-YYYY-MM-DD.rezept.json', () => {
+      const fixedDate = new Date(2026, 9, 19); // 19. Okt 2026
+      const fileName = service.getBatchExportFileName(fixedDate);
+      expect(fileName).toBe('rebu-alle-rezepte-2026-10-19.rezept.json');
+    });
+  });
+
   describe('encodeDeepLink & decodeDeepLink', () => {
     it('erzeugt standardmäßig einen HTTPS Deep-Link mit Datenparameter', () => {
       const link = service.encodeDeepLink(testRecipe);
@@ -230,6 +240,46 @@ describe('ShareService - Formatting & Encoding', () => {
 
       expect(parsed.recipe.fotoBase64).toBeNull();
       expect(mockPhotoService.getPhotoDisplayUrl).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('createBatchExportJson', () => {
+    const secondRecipe: Recipe = {
+      ...testRecipe,
+      id: 'second-recipe-uuid',
+      titel: 'Tomatensuppe mit Basilikum',
+      fotoPath: null,
+    };
+
+    it('erzeugt eine valide BatchRecipeExport-JSON-Struktur mit mehreren Rezepten', async () => {
+      const json = await service.createBatchExportJson([testRecipe, secondRecipe], true);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.app).toBe('rebu');
+      expect(parsed.version).toBe(1);
+      expect(parsed.recipes).toHaveLength(2);
+      expect(parsed.recipes[0].titel).toBe('Kürbis-Süppchen mit Ingwer');
+      expect(parsed.recipes[0].fotoBase64).toBe('data:image/jpeg;base64,mockBase64KuerbisData');
+      expect(parsed.recipes[1].titel).toBe('Tomatensuppe mit Basilikum');
+      expect(parsed.recipes[1].fotoBase64).toBeNull();
+    });
+
+    it('schließt Fotos aus, wenn includePhotos auf false gesetzt ist', async () => {
+      const json = await service.createBatchExportJson([testRecipe, secondRecipe], false);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.recipes[0].fotoBase64).toBeNull();
+      expect(mockPhotoService.getPhotoDisplayUrl).not.toHaveBeenCalled();
+    });
+
+    it('behandelt Fehler beim Laden eines Fotos ohne Abbruch des gesamten Exports', async () => {
+      mockPhotoService.getPhotoDisplayUrl.mockRejectedValueOnce(new Error('Foto nicht lesbar'));
+
+      const json = await service.createBatchExportJson([testRecipe], true);
+      const parsed = JSON.parse(json);
+
+      expect(parsed.recipes[0].fotoBase64).toBeNull();
+      expect(parsed.recipes[0].titel).toBe('Kürbis-Süppchen mit Ingwer');
     });
   });
 
@@ -375,6 +425,71 @@ describe('ShareService - Formatting & Encoding', () => {
         expect.stringContaining('"app": "rebu"'),
         'application/json',
       );
+    });
+  });
+
+  describe('shareBatchJsonFile', () => {
+    it('schreibt die Sammel-JSON-Datei ins Filesystem und teilt nativ', async () => {
+      const mockWriteFile = vi
+        .fn()
+        .mockResolvedValue({ uri: 'file:///cache/exports/rebu-alle-rezepte.rezept.json' });
+      const mockShare = vi.fn().mockResolvedValue({});
+
+      service.filesystemPlugin = {
+        writeFile: mockWriteFile,
+      } as any;
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: mockShare,
+      } as any;
+
+      const res = await service.shareBatchJsonFile([testRecipe], true, 'test-sammel.rezept.json');
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('native');
+      expect(mockWriteFile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          path: 'exports/test-sammel.rezept.json',
+        }),
+      );
+      expect(mockShare).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'test-sammel.rezept.json',
+          files: ['file:///cache/exports/rebu-alle-rezepte.rezept.json'],
+        }),
+      );
+    });
+
+    it('fällt im Webbrowser auf Datei-Download für Sammel-Export zurück', async () => {
+      service.filesystemPlugin = {
+        writeFile: vi.fn().mockRejectedValue(new Error('Filesystem not supported on web')),
+      } as any;
+      const downloadSpy = vi.spyOn(service, 'triggerFileDownload').mockImplementation(() => {});
+
+      const res = await service.shareBatchJsonFile([testRecipe], false, 'batch.rezept.json');
+
+      expect(res.success).toBe(true);
+      expect(res.method).toBe('download');
+      expect(downloadSpy).toHaveBeenCalledWith(
+        'batch.rezept.json',
+        expect.stringContaining('"recipes": ['),
+        'application/json',
+      );
+    });
+
+    it('behandelt Benutzerabbruch bei nativem Teilen', async () => {
+      service.filesystemPlugin = {
+        writeFile: vi.fn().mockResolvedValue({ uri: 'file:///cache/exports/batch.rezept.json' }),
+      } as any;
+      service.sharePlugin = {
+        canShare: vi.fn().mockResolvedValue({ value: true }),
+        share: vi.fn().mockRejectedValue(new Error('Share canceled')),
+      } as any;
+
+      const res = await service.shareBatchJsonFile([testRecipe]);
+
+      expect(res.success).toBe(false);
+      expect(res.error).toBe('Abgebrochen');
     });
   });
 
