@@ -1,0 +1,277 @@
+<ion-header>
+  <ion-toolbar>
+    <ion-title>{{ isMulti ? 'Rezepte importieren' : 'Rezept-Vorschau' }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="onDiscard()" aria-label="Schließen" [disabled]="isSaving">
+        <ion-icon slot="icon-only" name="close-outline"></ion-icon>
+      </ion-button>
+    </ion-buttons>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content class="ion-padding import-content">
+  <!-- Fall 1: Mehrere Rezepte (Sammel-Import / M9) -->
+  @if (isMulti) {
+    <ion-card class="multi-select-card">
+      <ion-card-header>
+        <div class="multi-header-row">
+          <ion-card-title>Rezepte auswählen</ion-card-title>
+          <ion-checkbox
+            [checked]="selectedIndices.size === drafts.length"
+            [indeterminate]="selectedIndices.size > 0 && selectedIndices.size < drafts.length"
+            (ionChange)="toggleAll($event)"
+            labelPlacement="end"
+          >
+            Alle auswählen
+          </ion-checkbox>
+        </div>
+        <ion-card-subtitle>{{ selectedIndices.size }} von {{ drafts.length }} ausgewählt</ion-card-subtitle>
+      </ion-card-header>
+
+      <ion-card-content class="no-padding">
+        <ion-list lines="full">
+          @for (draft of drafts; track draft.id; let idx = $index) {
+            <ion-item [class.item-active]="previewIndex === idx">
+              <ion-checkbox
+                slot="start"
+                [checked]="selectedIndices.has(idx)"
+                (ionChange)="toggleSelection(idx)"
+                aria-label="Rezept auswählen"
+              ></ion-checkbox>
+
+              <ion-label (click)="selectPreview(idx)" class="clickable-label">
+                <h3>{{ draft.titel }}</h3>
+                <p>{{ draft.portionen }} Portionen • {{ draft.zutaten.length }} Zutaten</p>
+              </ion-label>
+
+              <ion-button fill="clear" slot="end" size="small" (click)="selectPreview(idx)">Vorschau</ion-button>
+            </ion-item>
+          }
+        </ion-list>
+      </ion-card-content>
+    </ion-card>
+  }
+
+  <!-- Rezept-Vorschau (Einzelnes Rezept oder aktuell ausgewähltes) -->
+  @if (currentDraft) {
+    <div class="recipe-preview-section">
+      <!-- Kollisions-Hinweis -->
+      @if (hasCollision) {
+        <div class="collision-banner" data-testid="collision-banner">
+          <ion-icon name="alert-circle-outline" class="collision-icon"></ion-icon>
+          <div class="collision-text">
+            <strong>Rezept existiert bereits</strong>
+            <p>
+              Ein Rezept mit diesem Schlüssel ist auf deinem Gerät bereits vorhanden. Du kannst das bestehende Rezept
+              überschreiben oder eine Kopie anlegen.
+            </p>
+          </div>
+        </div>
+      }
+
+      <!-- Foto-Vorschau -->
+      @if (currentDraft.fotoBase64) {
+        <div class="photo-preview-wrapper">
+          <img [src]="currentDraft.fotoBase64" [alt]="'Foto von ' + currentDraft.titel" class="photo-preview-img" />
+        </div>
+      }
+
+      <!-- Titel & Badges -->
+      <div class="preview-header">
+        <h1 class="recipe-title" data-testid="recipe-preview-title">{{ currentDraft.titel }}</h1>
+
+        <div class="badges-row">
+          <app-badge
+            [label]="saisonLabel"
+            [color]="saisonColor"
+            icon="leaf-outline"
+            [ariaLabel]="'Saison: ' + saisonLabel"
+          ></app-badge>
+
+          @if (currentDraft.khTag) {
+            <app-badge
+              [label]="currentDraft.khTag"
+              color="primary"
+              icon="nutrition-outline"
+              [ariaLabel]="'Kohlenhydrat: ' + currentDraft.khTag"
+            ></app-badge>
+          }
+
+          @if (currentDraft.kategorie) {
+            <app-badge
+              [label]="currentDraft.kategorie"
+              color="secondary"
+              icon="bookmark-outline"
+              [ariaLabel]="'Kategorie: ' + currentDraft.kategorie"
+            ></app-badge>
+          }
+        </div>
+
+        <div class="meta-row">
+          <span class="meta-item">
+            <ion-icon name="people-outline"></ion-icon>
+            {{ currentDraft.portionen }} Portionen
+          </span>
+          @if (totalTime > 0) {
+            <span class="meta-item">
+              <ion-icon name="time-outline"></ion-icon>
+              {{ totalTime }} Min.
+            </span>
+          }
+        </div>
+      </div>
+
+      <!-- Zutatenliste -->
+      <ion-card class="detail-card">
+        <ion-card-header>
+          <ion-card-title class="card-section-title">
+            <ion-icon name="restaurant-outline" class="section-icon"></ion-icon>
+            Zutaten ({{ currentDraft.zutaten.length }})
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ul class="ingredients-list">
+            @for (zutat of currentDraft.zutaten; track zutat.name + zutat.reihenfolge) {
+              <li class="ingredient-row">
+                <span class="ingredient-amount">
+                  @if (zutat.menge !== null) {
+                    {{ zutat.menge }}
+                  }
+                  {{ zutat.einheit }}
+                </span>
+                <span class="ingredient-name">{{ zutat.name }}</span>
+              </li>
+            }
+          </ul>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Zubereitungsschritte -->
+      <ion-card class="detail-card">
+        <ion-card-header>
+          <ion-card-title class="card-section-title">
+            Zubereitung ({{ currentDraft.schritte.length }} Schritte)
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ol class="steps-list">
+            @for (schritt of currentDraft.schritte; track schritt.reihenfolge) {
+              <li class="step-item">
+                <div class="step-number">{{ schritt.reihenfolge }}</div>
+                <div class="step-text">{{ schritt.text }}</div>
+              </li>
+            }
+          </ol>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Notizen -->
+      @if (currentDraft.notizen) {
+        <ion-card class="detail-card">
+          <ion-card-header>
+            <ion-card-title class="card-section-title">Tipps & Notizen</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <p class="notes-text">{{ currentDraft.notizen }}</p>
+          </ion-card-content>
+        </ion-card>
+      }
+    </div>
+  }
+</ion-content>
+
+<!-- Fußzeile / Aktionen -->
+<div class="modal-footer-actions">
+  @if (!isMulti) {
+    @if (hasCollision) {
+      <div class="collision-actions">
+        <ion-button
+          expand="block"
+          color="warning"
+          (click)="onSaveWithResolution('overwrite')"
+          [disabled]="isSaving"
+          data-testid="btn-overwrite"
+        >
+          @if (isSaving) {
+            <ion-spinner name="crescent" slot="start"></ion-spinner>
+          } @else {
+            <ion-icon slot="start" name="refresh-outline"></ion-icon>
+          }
+          Überschreiben
+        </ion-button>
+
+        <ion-button
+          expand="block"
+          fill="outline"
+          color="primary"
+          (click)="onSaveWithResolution('copy')"
+          [disabled]="isSaving"
+          data-testid="btn-save-as-copy"
+        >
+          <ion-icon slot="start" name="copy-outline"></ion-icon>
+          Als Kopie speichern
+        </ion-button>
+
+        <ion-button
+          expand="block"
+          fill="clear"
+          color="medium"
+          (click)="onDiscard()"
+          [disabled]="isSaving"
+          data-testid="btn-discard"
+        >
+          Verwerfen
+        </ion-button>
+      </div>
+    } @else {
+      <div class="normal-actions">
+        <ion-button
+          expand="block"
+          color="primary"
+          (click)="onSave()"
+          [disabled]="isSaving"
+          data-testid="btn-save-import"
+        >
+          @if (isSaving) {
+            <ion-spinner name="crescent" slot="start"></ion-spinner>
+          } @else {
+            <ion-icon slot="start" name="download-outline"></ion-icon>
+          }
+          Rezept speichern
+        </ion-button>
+
+        <ion-button
+          expand="block"
+          fill="clear"
+          color="medium"
+          (click)="onDiscard()"
+          [disabled]="isSaving"
+          data-testid="btn-discard"
+        >
+          Verwerfen
+        </ion-button>
+      </div>
+    }
+  } @else {
+    <div class="multi-actions">
+      <ion-button
+        expand="block"
+        color="primary"
+        (click)="onImportSelected()"
+        [disabled]="isSaving || selectedIndices.size === 0"
+        data-testid="btn-import-selected"
+      >
+        @if (isSaving) {
+          <ion-spinner name="crescent" slot="start"></ion-spinner>
+        } @else {
+          <ion-icon slot="start" name="download-outline"></ion-icon>
+        }
+        Ausgewählte importieren ({{ selectedIndices.size }})
+      </ion-button>
+
+      <ion-button expand="block" fill="clear" color="medium" (click)="onDiscard()" [disabled]="isSaving">
+        Verwerfen
+      </ion-button>
+    </div>
+  }
+</div>
