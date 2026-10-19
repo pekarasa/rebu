@@ -35,6 +35,7 @@ import {
   refreshOutline,
   restaurantOutline,
   searchOutline,
+  settingsOutline,
   swapVerticalOutline,
 } from 'ionicons/icons';
 import {
@@ -109,6 +110,7 @@ export class RecipeListPage implements OnInit, ViewWillEnter {
       closeCircle,
       refreshOutline,
       restaurantOutline,
+      settingsOutline,
     });
   }
 

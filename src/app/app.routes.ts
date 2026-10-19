@@ -22,6 +22,10 @@ export const routes: Routes = [
       import('./features/recipe-list/recipe-list.page').then((m) => m.RecipeListPage),
   },
   {
+    path: 'settings',
+    loadComponent: () => import('./features/settings/settings.page').then((m) => m.SettingsPage),
+  },
+  {
     path: 'home',
     redirectTo: 'recipes',
     pathMatch: 'full',

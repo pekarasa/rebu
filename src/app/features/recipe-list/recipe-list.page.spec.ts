@@ -368,4 +368,10 @@ describe('RecipeListPage', () => {
     );
     expect(mockModalCtrl.create).not.toHaveBeenCalled();
   });
+
+  it('stellt einen Button zur Navigation auf die Einstellungsseite bereit', () => {
+    const settingsBtn = fixture.nativeElement.querySelector('[data-testid="btn-settings"]');
+    expect(settingsBtn).not.toBeNull();
+    expect(settingsBtn.getAttribute('routerlink')).toBe('/settings');
+  });
 });
