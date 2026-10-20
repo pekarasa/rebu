@@ -8,6 +8,7 @@ Werkzeuge: VS Code, Git (GitHub), Docker (Devcontainer + CI-Build-Images)
 ## 1. Projekt-Grundgerüst
 
 **Technologie-Stack**
+
 - Ionic 9 + Angular 22 (Standalone Components)
 - Capacitor 8 für native iOS/Android-Wrapper
 - Node 24 (Angular 22 CLI requires >= 22.22 oder >= 24.15)
@@ -16,11 +17,13 @@ Werkzeuge: VS Code, Git (GitHub), Docker (Devcontainer + CI-Build-Images)
 - Unit-Tests: vitest (statt Karma/Jest, Ionic-Default seit v9)
 
 **Lokale Persistenz**
+
 - `@capacitor-community/sqlite` für Rezepte, Zutaten, Schritte
 - `Capacitor Filesystem` für Fotos (als Datei, nur Base64 für Export)
 - `Capacitor Preferences` für UI-Einstellungen (aktive Filter)
 
 **Weitere Kernbibliotheken**
+
 - `@capacitor/share` – nativer Teilen-Dialog
 - `@capacitor/camera` – Foto aus Kamera/Galerie
 - `@capacitor/app` – Deep-Link-Handling
@@ -79,6 +82,7 @@ rebu/
 ## 3. Docker-Setup
 
 ### 3a. Devcontainer (`.devcontainer/devenv.dockerfile`)
+
 - Basis: `mcr.microsoft.com/devcontainers/typescript-node:24-bookworm`
 - Zusätzlich: OpenJDK 17, Android SDK + Build-Tools 34, Ionic CLI, Angular CLI 22,
   Capacitor CLI 8, Gradle
@@ -100,14 +104,16 @@ rebu/
 - iOS-Builds: **nicht im Container** – Hinweis im README (macOS + Xcode nötig)
 
 ### 3b. CI-Build-Image (`docker/build.Dockerfile`)
+
 - Schlank: Node 20 Bookworm + Chromium (für headless Karma/Playwright)
 - Für Jobs: `lint`, `test`, `build:web`
-- *TODO: auf Node 24 anheben, parallel zum Devcontainer-Upgrade.*
+- _TODO: auf Node 24 anheben, parallel zum Devcontainer-Upgrade._
 
 ### 3c. CI-Android-Image (`docker/android.Dockerfile`)
+
 - Node 20 + JDK 17 + Android SDK + Gradle
 - Für Job: `build:android` (unsigned APK als Artefakt)
-- *TODO: auf Node 24 anheben.*
+- _TODO: auf Node 24 anheben._
 
 ---
 
@@ -126,12 +132,14 @@ rebu/
 ## 5. Git / GitHub-Workflow
 
 **Branching: Trunk-based mit kurzen Feature-Branches**
+
 - `main` – immer deploybar, geschützt (Branch Protection Rule)
 - `feature/<issue>-<slug>` – kurzlebig (< 3 Tage)
 - PR → Review → Squash-Merge in `main`
 - Tags `vX.Y.Z` triggern Release-Workflow
 
 **GitHub-spezifisch**
+
 - Issues + Labels (`type:feat`, `type:bug`, `area:ui`, …)
 - `CODEOWNERS` für Review-Zuweisung
 - Branch Protection: Required Status Checks (CI muss grün sein), lineare History, keine Direct-Pushes auf `main`
@@ -139,6 +147,7 @@ rebu/
 - CLI: `gh` für Issue-/PR-Workflows aus VS Code heraus
 
 **Konventionen**
+
 - Commits: Conventional Commits (`feat:`, `fix:`, `chore:`, …)
 - `.gitignore`: `node_modules/`, `dist/`, `www/`, `android/app/build/`, `ios/App/Pods/`, `*.keystore`, `.env*`
 - `.gitattributes`: LF-Normalisierung, Binary-Markierung für `.png`, `.jpg`, `.keystore`
@@ -151,48 +160,52 @@ rebu/
 **Workflows unter `.github/workflows/`**
 
 ### `ci.yml` – bei jedem Push / Pull Request
+
 Läuft auf `ubuntu-latest`, Container: eigenes Build-Image (`docker/build.Dockerfile`), ggf. publiziert nach GHCR.
 
-| Job | Container | Trigger |
-|---|---|---|
-| `install` | build-image | push, pull_request (Cache `~/.npm`, `node_modules/`) |
-| `lint` | build-image | push, pull_request |
-| `typecheck` | build-image | push, pull_request |
-| `test-unit` | build-image | push, pull_request (Coverage-Upload als Artefakt) |
-| `test-e2e` | build-image + Playwright | pull_request, push auf `main` |
-| `build-web` | build-image | pull_request, push auf `main` |
+| Job         | Container                | Trigger                                              |
+| ----------- | ------------------------ | ---------------------------------------------------- |
+| `install`   | build-image              | push, pull_request (Cache `~/.npm`, `node_modules/`) |
+| `lint`      | build-image              | push, pull_request                                   |
+| `typecheck` | build-image              | push, pull_request                                   |
+| `test-unit` | build-image              | push, pull_request (Coverage-Upload als Artefakt)    |
+| `test-e2e`  | build-image + Playwright | pull_request, push auf `main`                        |
+| `build-web` | build-image              | pull_request, push auf `main`                        |
 
 ### `android.yml` – Android-APK-Build
-| Job | Runner / Container | Trigger |
-|---|---|---|
+
+| Job             | Runner / Container                            | Trigger                                   |
+| --------------- | --------------------------------------------- | ----------------------------------------- |
 | `build-android` | `ubuntu-latest` + `docker/android.Dockerfile` | push auf `main`, Tags `v*` (APK-Artefakt) |
 
 ### `release.yml` – Release-Erstellung
-| Job | Runner | Trigger |
-|---|---|---|
+
+| Job       | Runner          | Trigger                                                                          |
+| --------- | --------------- | -------------------------------------------------------------------------------- |
 | `release` | `ubuntu-latest` | Tags `v*` (GitHub Release anlegen, APK als Asset anhängen, Changelog generieren) |
 
 ### `ios.yml` – iOS-Build (optional, später)
+
 Läuft auf `macos-latest` (kein Docker möglich); baut nur bei Tags `v*`. Benötigt Signierungs-Zertifikate in GitHub Secrets. Zunächst deaktiviert; dokumentiert im README.
 
 ---
 
 ## 7. Entwicklungs-Meilensteine
 
-| # | Meilenstein | Inhalt |
-|---|---|---|
-| M0 | **Setup** | Repo-Init, Devcontainer, Docker-Images, GitHub-Actions-CI grün, Ionic-Projekt erzeugt |
-| M1 | **Datenmodell + Persistenz** | SQLite-Schema, Repository-Services, Migrations, Unit-Tests |
-| M2 | **Rezept erfassen** | Formular, Drag&Drop, Auto-Save-Entwurf, Foto-Upload |
-| M3 | **Rezept-Listenansicht** | Karten, Volltextsuche, Sortierung |
-| M4 | **Rezept-Detailansicht** | Portionsskalierung, Schritte abhaken, Keep-Awake |
-| M5 | **Saisonalität** | Statische Zutaten-DB, Berechnung beim Speichern, Filter-Chip |
-| M6 | **KH-Erkennung** | Statische KH-DB mit Priorität, Berechnung, Filter-Chip |
-| M7 | **Teilen** | Text/JSON-Export, Deep-Link-Encoding, nativer Share-Dialog |
-| M8 | **Import** | Deep-Link-Handler, JSON-Datei-Import, Vorschau, UUID-Kollision |
-| M9 | **Sammel-Export/Import** | Alle Rezepte + Base64-Fotos, Auswahl-Dialog |
-| M10 | **Platform-Polish** | iOS/Android-Anpassungen, Icons, Splash, Signierung |
-| M11 | **v1 Release** | Beta-Testing, Store-Vorbereitung, Tag `v1.0.0` |
+| #   | Meilenstein                  | Inhalt                                                                                |
+| --- | ---------------------------- | ------------------------------------------------------------------------------------- |
+| M0  | **Setup**                    | Repo-Init, Devcontainer, Docker-Images, GitHub-Actions-CI grün, Ionic-Projekt erzeugt |
+| M1  | **Datenmodell + Persistenz** | SQLite-Schema, Repository-Services, Migrations, Unit-Tests                            |
+| M2  | **Rezept erfassen**          | Formular, Drag&Drop, Auto-Save-Entwurf, Foto-Upload                                   |
+| M3  | **Rezept-Listenansicht**     | Karten, Volltextsuche, Sortierung                                                     |
+| M4  | **Rezept-Detailansicht**     | Portionsskalierung, Schritte abhaken, Keep-Awake                                      |
+| M5  | **Saisonalität**             | Statische Zutaten-DB, Berechnung beim Speichern, Filter-Chip                          |
+| M6  | **KH-Erkennung**             | Statische KH-DB mit Priorität, Berechnung, Filter-Chip                                |
+| M7  | **Teilen**                   | Text/JSON-Export, Deep-Link-Encoding, nativer Share-Dialog                            |
+| M8  | **Import**                   | Deep-Link-Handler, JSON-Datei-Import, Vorschau, UUID-Kollision                        |
+| M9  | **Sammel-Export/Import**     | Alle Rezepte + Base64-Fotos, Auswahl-Dialog                                           |
+| M10 | **Platform-Polish**          | iOS/Android-Anpassungen, Icons, Splash, Signierung ✅                                 |
+| M11 | **v1 Release**               | Beta-Testing, Store-Vorbereitung, Tag `v1.0.0`                                        |
 
 ---
 

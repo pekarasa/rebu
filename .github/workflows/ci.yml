@@ -77,7 +77,7 @@ jobs:
           key: node_modules-${{ hashFiles('package-lock.json') }}
 
       - name: Type check
-        run: npx tsc --noEmit
+        run: npx tsc -p tsconfig.app.json --noEmit
 
   test-unit:
     name: Unit tests
