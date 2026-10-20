@@ -235,10 +235,35 @@ Das Projekt nutzt **GitHub Actions** für Qualitätssicherung und automatisierte
 
 Geplante Erweiterungen für zukünftige Meilensteine:
 
+- [x] **Store Release (`v1.0.0`)**: Versionsanhebung auf 1.0.0, Store-Metadaten & APK-Release-Pipeline einsatzbereit.
 - [ ] **E2E-Tests**: Playwright-Testsuite für kritische Workflows (Erfassen → Kochen → Teilen → Importieren).
 - [ ] **iOS CI/CD**: Automatisierter macOS-Runner-Workflow für iOS-Builds und Archivierung via GitHub Actions.
 - [ ] **PDF-Export**: Druckfreundliche Formatierung für Rezeptkarten.
-- [ ] **Store Release (`v1.0.0`)**: Vorbereitung der Store-Präsenzen für Google Play Store und Apple App Store.
+
+---
+
+## 📦 Store-Vorbereitung & Beta-Testing (v1.0.0)
+
+### Store-Metadaten
+
+| Feld                        | Wert                                                                                  |
+| --------------------------- | ------------------------------------------------------------------------------------- |
+| **App-Titel**               | rebu – Deine Rezept-App                                                               |
+| **Paketname / Bundle-ID**   | `ch.pekarasa.rebu`                                                                    |
+| **Kategorie**               | Essen & Trinken (Food & Drink)                                                        |
+| **Altersfreigabe**          | PEGI 3 / USK 0 / Everyone                                                             |
+| **Kurzbeschreibung**        | Offline-first Rezeptbuch – einfach Rezepte erfassen, teilen und kochen ohne Account.  |
+| **Schlagwörter (Keywords)** | rezepte, kochen, backen, offline, kochbuch, portionsrechner, saisonal, rezeptsammlung |
+
+### Beta-Testing & Distribution
+
+- **Android (Google Play Console)**:
+  - Verteilung über den **Closed-Testing / Open-Testing Track**.
+  - Direkte APK-Installation für Tester über die signierte `app-release.apk` aus dem GitHub Release `v1.0.0`.
+- **iOS (Apple TestFlight)**:
+  - Archivierung via Xcode und Upload an App Store Connect für interne/externe TestFlight-Gruppen.
+- **Automatisierte Release-Pipeline**:
+  - Durch das Taggen von `v1.0.0` baut `.github/workflows/release.yml` automatisch produktionsreife Release-APKs und hängt diese an das GitHub-Release an.
 
 ---
 
