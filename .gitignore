@@ -21,7 +21,7 @@ coverage/
 *.lcov
 test-results/
 playwright-report/
-screenshots/
+e2e/screenshots/
 e2e/.auth/
 
 # ---------- Capacitor ----------
