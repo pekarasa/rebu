@@ -35,3 +35,23 @@
 /* @import "@ionic/angular/css/palettes/dark.always.css"; */
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
 @import '@ionic/angular/css/palettes/dark.system.css';
+
+/**
+ * Mobile & Safe-Area Polish (iOS Notch / Dynamic Island & Android Navigation Bar)
+ */
+:root {
+  --ion-safe-area-top: env(safe-area-inset-top, 0px);
+  --ion-safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --ion-safe-area-left: env(safe-area-inset-left, 0px);
+  --ion-safe-area-right: env(safe-area-inset-right, 0px);
+}
+
+/* Ensure bottom FAB buttons respect home indicator / nav bar safe areas */
+ion-fab[vertical='bottom'] {
+  margin-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
+}
+
+/* Remove grey tap highlights on mobile web/hybrid */
+* {
+  -webkit-tap-highlight-color: transparent;
+}

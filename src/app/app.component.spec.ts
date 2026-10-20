@@ -4,6 +4,7 @@ import { ModalController, ToastController } from '@ionic/angular';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppComponent } from './app.component';
 import { ImportedRecipeDraft, ImportService } from './core/import.service';
+import { PlatformService } from './core/platform.service';
 import { ImportModalComponent } from './features/import/import-modal.component';
 
 describe('AppComponent', () => {
@@ -19,6 +20,10 @@ describe('AppComponent', () => {
   };
   let mockImportService: {
     parseImportSource: ReturnType<typeof vi.fn>;
+  };
+  let mockPlatformService: {
+    initialize: ReturnType<typeof vi.fn>;
+    destroy: ReturnType<typeof vi.fn>;
   };
   let mockAppPlugin: {
     addListener: ReturnType<typeof vi.fn>;
@@ -65,6 +70,11 @@ describe('AppComponent', () => {
       }),
     };
 
+    mockPlatformService = {
+      initialize: vi.fn().mockResolvedValue(undefined),
+      destroy: vi.fn(),
+    };
+
     const mockListenerHandle = {
       remove: vi.fn().mockResolvedValue(undefined),
     };
@@ -84,6 +94,7 @@ describe('AppComponent', () => {
         { provide: ModalController, useValue: mockModalCtrl },
         { provide: ToastController, useValue: mockToastCtrl },
         { provide: ImportService, useValue: mockImportService },
+        { provide: PlatformService, useValue: mockPlatformService },
       ],
     }).compileComponents();
 
@@ -100,6 +111,7 @@ describe('AppComponent', () => {
   it('erzeugt die App und registriert den appUrlOpen-Listener', async () => {
     await component.ngOnInit();
     expect(component).toBeTruthy();
+    expect(mockPlatformService.initialize).toHaveBeenCalled();
     expect(mockAppPlugin.addListener).toHaveBeenCalledWith('appUrlOpen', expect.any(Function));
   });
 
@@ -163,6 +175,7 @@ describe('AppComponent', () => {
     const listenerHandle = await mockAppPlugin.addListener.mock.results[0].value;
     component.ngOnDestroy();
 
+    expect(mockPlatformService.destroy).toHaveBeenCalled();
     expect(listenerHandle.remove).toHaveBeenCalled();
   });
 });

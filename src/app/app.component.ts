@@ -5,6 +5,7 @@ import { Filesystem, FilesystemPlugin } from '@capacitor/filesystem';
 import { IonApp, IonRouterOutlet, ModalController, ToastController } from '@ionic/angular';
 import { filter, Subscription } from 'rxjs';
 import { ImportService } from './core/import.service';
+import { PlatformService } from './core/platform.service';
 import {
   ImportModalComponent,
   ImportModalDismissResult,
@@ -17,6 +18,7 @@ import {
 })
 export class AppComponent implements OnInit, OnDestroy {
   private importService = inject(ImportService);
+  private platformService = inject(PlatformService);
   private modalCtrl = inject(ModalController);
   private toastCtrl = inject(ToastController);
   private router = inject(Router);
@@ -29,11 +31,13 @@ export class AppComponent implements OnInit, OnDestroy {
   private routerSub?: Subscription;
 
   async ngOnInit(): Promise<void> {
+    await this.platformService.initialize();
     await this.setupDeepLinkHandling();
     this.setupWebQueryParamHandling();
   }
 
   ngOnDestroy(): void {
+    this.platformService.destroy();
     if (this.appUrlListener) {
       void this.appUrlListener.remove();
     }
