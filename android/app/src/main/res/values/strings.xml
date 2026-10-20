@@ -3,5 +3,5 @@
     <string name="app_name">rebu</string>
     <string name="title_activity_main">rebu</string>
     <string name="package_name">ch.pekarasa.rebu</string>
-    <string name="custom_url_scheme">ch.pekarasa.rebu</string>
+    <string name="custom_url_scheme">rebu</string>
 </resources>

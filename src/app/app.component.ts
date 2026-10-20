@@ -1,6 +1,7 @@
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { App, AppPlugin, URLOpenListenerEvent } from '@capacitor/app';
+import { Filesystem, FilesystemPlugin } from '@capacitor/filesystem';
 import { IonApp, IonRouterOutlet, ModalController, ToastController } from '@ionic/angular';
 import { filter, Subscription } from 'rxjs';
 import { ImportService } from './core/import.service';
@@ -22,6 +23,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   /** Plugin-Referenz für DI / Mocking in Tests */
   appPlugin: AppPlugin = App;
+  filesystemPlugin: FilesystemPlugin = Filesystem;
 
   private appUrlListener?: { remove: () => Promise<void> };
   private routerSub?: Subscription;
@@ -73,7 +75,19 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   async handleIncomingUrl(url: string): Promise<void> {
-    const parseResult = this.importService.parseImportSource(url);
+    let source = url;
+    if (url.startsWith('content://') || url.startsWith('file://')) {
+      try {
+        const fileResult = await this.filesystemPlugin.readFile({ path: url });
+        if (typeof fileResult.data === 'string') {
+          source = fileResult.data;
+        }
+      } catch (err) {
+        console.warn('Fehler beim Lesen der URI via Filesystem:', err);
+      }
+    }
+
+    const parseResult = this.importService.parseImportSource(source);
     if (!parseResult.success || parseResult.recipes.length === 0) {
       await this.showToast(
         parseResult.error || 'Der geöffnete Link enthält kein gültiges Rezept.',

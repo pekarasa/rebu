@@ -23,6 +23,9 @@ describe('AppComponent', () => {
   let mockAppPlugin: {
     addListener: ReturnType<typeof vi.fn>;
   };
+  let mockFilesystemPlugin: {
+    readFile: ReturnType<typeof vi.fn>;
+  };
 
   const sampleDraft: ImportedRecipeDraft = {
     id: 'deep-link-recipe-id',
@@ -70,6 +73,10 @@ describe('AppComponent', () => {
       addListener: vi.fn().mockResolvedValue(mockListenerHandle),
     };
 
+    mockFilesystemPlugin = {
+      readFile: vi.fn().mockResolvedValue({ data: '{"app":"rebu"}' }),
+    };
+
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
@@ -86,6 +93,8 @@ describe('AppComponent', () => {
     fixture = TestBed.createComponent(AppComponent);
     component = fixture.componentInstance;
     component.appPlugin = mockAppPlugin as unknown as typeof component.appPlugin;
+    component.filesystemPlugin =
+      mockFilesystemPlugin as unknown as typeof component.filesystemPlugin;
   });
 
   it('erzeugt die App und registriert den appUrlOpen-Listener', async () => {
@@ -111,6 +120,21 @@ describe('AppComponent', () => {
       }),
     );
     expect(router.navigate).toHaveBeenCalledWith(['/recipes', 'deep-link-recipe-id']);
+  });
+
+  it('liest den Dateiinhalt über Filesystem, wenn eine content:// oder file:// URL übergeben wird', async () => {
+    await component.ngOnInit();
+
+    const listenerCallback = mockAppPlugin.addListener.mock.calls[0][1];
+    await listenerCallback({
+      url: 'content://com.android.providers.downloads.documents/document/12',
+    });
+
+    expect(mockFilesystemPlugin.readFile).toHaveBeenCalledWith({
+      path: 'content://com.android.providers.downloads.documents/document/12',
+    });
+    expect(mockImportService.parseImportSource).toHaveBeenCalledWith('{"app":"rebu"}');
+    expect(mockModalCtrl.create).toHaveBeenCalled();
   });
 
   it('zeigt einen Fehler-Toast wenn der Deep-Link ungültig ist', async () => {

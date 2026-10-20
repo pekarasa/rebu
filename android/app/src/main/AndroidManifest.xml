@@ -22,6 +22,55 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Custom URL Scheme: rebu://recipe?data=... -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="rebu" />
+            </intent-filter>
+
+            <!-- Custom URL Scheme fallback: ch.pekarasa.rebu:// -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="ch.pekarasa.rebu" />
+            </intent-filter>
+
+            <!-- Web Deep Links: https://rebu.app/recipe?data=... -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="rebu.app" />
+            </intent-filter>
+
+            <!-- File Intent Filter: .rezept.json / .json files -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:mimeType="application/json" />
+                <data android:scheme="content" android:mimeType="text/json" />
+                <data android:scheme="content" android:mimeType="text/plain" />
+                <data android:scheme="content" android:mimeType="application/octet-stream" />
+                <data android:scheme="file" android:mimeType="application/json" />
+                <data android:scheme="file" android:mimeType="text/json" />
+                <data android:scheme="file" android:mimeType="text/plain" />
+                <data android:scheme="file" android:mimeType="application/octet-stream" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="content" android:pathPattern=".*\\.json" />
+                <data android:scheme="content" android:pathPattern=".*\\.rezept\\.json" />
+                <data android:scheme="file" android:pathPattern=".*\\.json" />
+                <data android:scheme="file" android:pathPattern=".*\\.rezept\\.json" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -36,6 +85,12 @@
     </application>
 
     <!-- Permissions -->
-
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="29" />
+
+    <!-- Features -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 </manifest>
