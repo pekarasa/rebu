@@ -210,13 +210,14 @@ npx cap open ios
 
 ---
 
-## 🐳 VS Code Devcontainer
+## 🐳 VS Code & Devcontainer
 
 Das Repository enthält eine vollständige Dev-Container-Umgebung unter `.devcontainer/`:
 
-- Enthält Node.js 24, OpenJDK 17, Android SDK & Build-Tools sowie alle erforderlichen CLIs.
-- Starte den Container einfach in VS Code über **"Dev Containers: Reopen in Container"**.
-- Ermöglicht Android-Builds ohne manuelle lokale Toolchain-Installation auf dem Host.
+- **Komplettes Tooling**: Node.js 24, OpenJDK 17/21, Android SDK (Platform 34, Build-Tools) und CLIs vorkonfiguriert.
+- **Schnellstart**: In VS Code über **„Dev Containers: Reopen in Container“** öffnen und sofort ohne lokale Installationen loslegen.
+- **Port-Weiterleitungen**: `4200` (Angular Dev-Server), `8100` (Ionic Serve) und `35729` (LiveReload) sind vorkonfiguriert.
+- **Empfohlene Extensions**: ESLint, Prettier, Angular Language Service, EditorConfig und Docker-Erweiterungen werden automatisch bereitgestellt.
 
 ---
 
@@ -227,6 +228,17 @@ Das Projekt nutzt **GitHub Actions** für Qualitätssicherung und automatisierte
 - **`ci.yml`**: Läuft bei jedem Push und Pull Request. Führt `npm ci`, ESLint, TypeScript-Typecheck, Vitest Unit-Tests und den Web-Produktions-Build aus.
 - **`android.yml`**: Baut bei jedem Push auf `main` sowie bei PRs automatisch die Android-Debug- und (falls Secrets hinterlegt sind) Release-APKs und lädt sie als Workflow-Artefakte hoch.
 - **`release.yml`**: Triggert bei Git-Tags (`v*`). Führt alle Qualitätsprüfungen durch, baut die signierten Android APKs und erstellt automatisch ein GitHub-Release mit den APK-Dateien als Download-Assets.
+
+---
+
+## 🗺️ Roadmap & Ausblick
+
+Geplante Erweiterungen für zukünftige Meilensteine:
+
+- [ ] **E2E-Tests**: Playwright-Testsuite für kritische Workflows (Erfassen → Kochen → Teilen → Importieren).
+- [ ] **iOS CI/CD**: Automatisierter macOS-Runner-Workflow für iOS-Builds und Archivierung via GitHub Actions.
+- [ ] **PDF-Export**: Druckfreundliche Formatierung für Rezeptkarten.
+- [ ] **Store Release (`v1.0.0`)**: Vorbereitung der Store-Präsenzen für Google Play Store und Apple App Store.
 
 ---
 
