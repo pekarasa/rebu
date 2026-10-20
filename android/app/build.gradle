@@ -1,5 +1,21 @@
 apply plugin: 'com.android.application'
 
+def keystorePropertiesFile = rootProject.file('key.properties')
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+def getKeystoreProp = { propName, envName ->
+    if (keystoreProperties.containsKey(propName)) {
+        return keystoreProperties[propName]
+    }
+    if (project.hasProperty(propName)) {
+        return project.property(propName)
+    }
+    return System.getenv(envName) ?: System.getenv(propName)
+}
+
 android {
     namespace = "ch.pekarasa.rebu"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -16,8 +32,29 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+
+    signingConfigs {
+        release {
+            def storeFilePath = getKeystoreProp('storeFile', 'RELEASE_STORE_FILE') ?: getKeystoreProp('keyStore', 'KEYSTORE_FILE')
+            def storePwd = getKeystoreProp('storePassword', 'RELEASE_STORE_PASSWORD') ?: getKeystoreProp('storePassword', 'KEYSTORE_PASSWORD')
+            def keyAl = getKeystoreProp('keyAlias', 'RELEASE_KEY_ALIAS') ?: getKeystoreProp('keyAlias', 'KEY_ALIAS')
+            def keyPwd = getKeystoreProp('keyPassword', 'RELEASE_KEY_PASSWORD') ?: getKeystoreProp('keyPassword', 'KEY_PASSWORD')
+
+            if (storeFilePath) {
+                def resolvedFile = file(storeFilePath).isAbsolute() ? file(storeFilePath) : rootProject.file(storeFilePath)
+                if (resolvedFile.exists()) {
+                    storeFile resolvedFile
+                    storePassword storePwd
+                    keyAlias keyAl
+                    keyPassword keyPwd
+                }
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig signingConfigs.release.storeFile ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
