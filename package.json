@@ -46,6 +46,7 @@
     "@angular/compiler-cli": "22.2.2",
     "@angular/language-service": "22.2.2",
     "@capacitor/cli": "8.4.3",
+    "@capacitor/ios": "^8.5.3",
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@ionic/angular-toolkit": "^13.0.0",
